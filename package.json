@@ -1,0 +1,13 @@
+{
+  "name": "jdshowdepremios-site",
+  "version": "1.0.0",
+  "main": "server.js",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^4.19.2",
+    "firebase-admin": "^14.1.0"
+  },
+  "scripts": {
+    "start": "node server.js"
+  }
+}

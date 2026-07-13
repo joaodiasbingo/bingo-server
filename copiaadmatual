@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JD Show de Prêmios - Painel do Organizador</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #f0f4f8; color: #1e293b; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        
+        .card { background: white; border-radius: 12px; padding: 22px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 15px; width: 100%; max-width: 600px; margin-bottom: 20px; }
+        .card h2 { font-size: 18px; color: #0f172a; border-bottom: 2px solid #f1f5f9; padding-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+        
+        .form-group { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+        .form-group label { font-size: 13px; font-weight: 600; color: #475569; }
+        
+        input[type="text"], input[type="number"], input[type="password"] { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; outline: none; }
+        
+        .grid-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        
+        button { padding: 12px; font-size: 14px; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .btn-blue { background-color: #3b82f6; color: white; }
+        .btn-purple { background-color: #8b5cf6; color: white; }
+        .btn-green { background-color: #10b981; color: white; }
+        .btn-red { background-color: #ef4444; color: white; }
+        
+        .bola-grande { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; width: 65px; height: 65px; font-size: 30px; font-weight: 700; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 10px auto; box-shadow: 0 4px 10px rgba(217,119,6,0.3); }
+        .historico-grid { display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; margin-top: 10px; max-height: 80px; overflow-y: auto; width: 100%; padding: 2px; }
+        .bola-mini { background-color: #94a3b8; color: white; width: 26px; height: 26px; font-size: 12px; font-weight: 600; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+
+        .lista-linhas-compacta { max-height: 250px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+        .item-lista-admin { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-bottom: 1px solid #e2e8f0; font-size: 13px; background: #f8fafc; border-radius: 6px; }
+        
+        .info-header-box { display: flex; justify-content: space-between; width: 100%; max-width: 600px; margin-bottom: 12px; background: #fff; padding: 10px 15px; border-radius: 10px; border: 1px solid #e2e8f0; font-weight: bold; font-size: 14px; }
+        .alerta-vencedor { background: #fef2f2; border: 2px dashed #ef4444; color: #991b1b; padding: 15px; border-radius: 8px; text-align: center; font-weight: bold; margin-bottom: 15px; display: none; }
+
+        /* ===== BILHETE DO VENCEDOR (grade 3x5, 15 números) ===== */
+        .wrapper-bilhetes-vencedores { display: flex; flex-direction: column; gap: 14px; margin-top: 10px; }
+        .bilhete-vencedor { background: #fff; border: 3px solid #f59e0b; border-radius: 10px; padding: 16px; text-align: left; }
+        .bilhete-vencedor .bilhete-topo { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .bilhete-vencedor .bilhete-titulo { font-size: 13px; font-weight: 800; color: #b45309; text-transform: uppercase; letter-spacing: 0.5px; }
+        .bilhete-vencedor .bilhete-nome { font-size: 17px; font-weight: 800; color: #111; }
+        .bilhete-vencedor .bilhete-info { font-size: 13px; color: #475569; margin-bottom: 10px; }
+        .bilhete-grade { display: grid; grid-template-columns: repeat(5, 1fr); grid-template-rows: repeat(3, 1fr); gap: 6px; }
+        .bilhete-grade .bilhete-num { background: radial-gradient(circle, #39FF14, #04b304); color: #000; font-weight: bold; font-size: 16px; height: 42px; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+        .btn-print-bilhetes { background-color: #f59e0b; color: white; margin-top: 8px; }
+        .btn-print-bilhetes:hover { background-color: #d97706; }
+
+        @media print {
+            body * { visibility: hidden; }
+            #wrapperBilhetesParaImprimir, #wrapperBilhetesParaImprimir * { visibility: visible; }
+            #wrapperBilhetesParaImprimir { position: absolute; top: 0; left: 0; width: 100%; }
+            .btn-print-bilhetes { display: none !important; }
+        }
+
+        /* ===== ANIMAÇÃO DO BONECO (MASCOTE) — igual à área do cliente ===== */
+        .boneco-mascote {
+            cursor: pointer;
+            transform-origin: center bottom;
+            filter: drop-shadow(0 6px 10px rgba(0,0,0,0.18));
+            animation: bonecoEntrada 0.8s ease-out, bonecoFloat 3.2s ease-in-out infinite 0.8s;
+        }
+        @keyframes bonecoEntrada {
+            0% { opacity: 0; transform: scale(0.4) translateY(50px) rotate(-8deg); }
+            60% { opacity: 1; transform: scale(1.1) translateY(-8px) rotate(3deg); }
+            100% { opacity: 1; transform: scale(1) translateY(0) rotate(0deg); }
+        }
+        @keyframes bonecoFloat {
+            0%, 100% { transform: translateY(0) rotate(-2deg); }
+            50% { transform: translateY(-10px) rotate(2deg); }
+        }
+        .boneco-mascote.boneco-pulo {
+            animation: bonecoPulo 0.6s ease;
+        }
+        @keyframes bonecoPulo {
+            0% { transform: scale(1) rotate(0deg); }
+            30% { transform: scale(1.25) rotate(-12deg) translateY(-14px); }
+            60% { transform: scale(0.92) rotate(8deg) translateY(2px); }
+            100% { transform: scale(1) rotate(0deg) translateY(0); }
+        }
+        .boneco-mascote.boneco-vencedor {
+            animation: bonecoComemoracao 0.9s ease-in-out infinite;
+        }
+        @keyframes bonecoComemoracao {
+            0%, 100% { transform: translateY(0) rotate(-6deg) scale(1); }
+            25% { transform: translateY(-18px) rotate(6deg) scale(1.08); }
+            50% { transform: translateY(0) rotate(-6deg) scale(1); }
+            75% { transform: translateY(-18px) rotate(6deg) scale(1.08); }
+        }
+    </style>
+</head>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyCLC7C8mGgoWZUGGARH-D_5KhVAb81a9xY",
+  authDomain: "jd-show-premios-novo.firebaseapp.com",
+  databaseURL: "https://jd-show-premios-novo-default-rtdb.firebaseio.com",
+  projectId: "jd-show-premios-novo",
+  storageBucket: "jd-show-premios-novo.firebasestorage.app",
+  messagingSenderId: "1013416322561",
+  appId: "1:1013416322561:web:a7d072caf168c5d1ad4200"
+};
+
+if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+var db = firebase.database();
+</script>
+
+<body>
+<div style="display: flex; align-items: center; justify-content: center; gap: 15px; width: 100%; max-width: 600px; margin: 0 auto; padding: 20px 0;">
+    <img src="boneco.png" alt="Mascote" id="bonecoMascoteAdmin" class="boneco-mascote" onclick="animarBonecoAdminClique()" style="width: 120px; height: auto;">
+    <div style="text-align: center;">
+        <h1 style="font-family: 'Arial Black', sans-serif; font-size: 5rem; color: #FFD700; line-height: 0.8; text-shadow: 2px 2px 4px rgba(0,0,0,0.15);">JD</h1>
+        <h2 style="font-size: 1.2rem; color: #111; text-transform: uppercase;">Painel Organizador</h2>
+    </div>
+</div>
+
+<div class="info-header-box">
+    <div style="color: #16a34a;">🏆 Prêmio: <span id="topGlobalPremio">...</span></div>
+    <div style="color: #2563eb;">🎫 Preço: <span id="topGlobalPreco">R$ 0,00</span></div>
+</div>
+
+<!-- ALERTA DE GANHADOR(ES) EM TEMPO REAL -->
+<div class="card alerta-vencedor" id="boxVencedorAdmin">
+    <div id="txtTituloVencedorAdmin">🚨 🔥 BINGO! TEMOS UM GANHADOR COROADO! 🔥 🚨</div>
+    <div id="wrapperBilhetesParaImprimir" class="wrapper-bilhetes-vencedores"></div>
+    <button class="btn-print-bilhetes" onclick="window.print()">🖨️ Imprimir Bilhete(s)</button>
+</div>
+
+<section class="card" id="cardLoginAdmin">
+    <h2>🔧 Acesso Restrito</h2>
+    <div class="form-group">
+        <label>Senha do Painel</label>
+        <input type="password" id="senhaAdmin" placeholder="Digite a senha master">
+    </div>
+    <button class="btn-purple" onclick="liberarPainelAdmin()">Entrar no Painel</button>
+</section>
+
+<div id="painelAdminControle" style="display: none; flex-direction: column; width: 100%; max-width: 600px;">
+    
+    <section class="card">
+        <h2>💰 Configurações da Rodada</h2>
+        <div class="grid-inputs">
+            <div class="form-group"><label>Prêmio</label><input type="text" id="inpPremioJogo"></div>
+            <div class="form-group"><label>Valor (R$)</label><input type="text" id="inpValorCartela"></div>
+        </div>
+        <button class="btn-green" onclick="salvarConfiguracoesGlobais()">💾 Salvar Configurações</button>
+    </section>
+
+    <section class="card" style="background: #eff6ff;">
+        <h2>🔓 Status Geral do Site</h2>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <button class="btn-green" onclick="alterarStatusJogo('aberto')">🔓 ABRIR SITE</button>
+            <button class="btn-red" onclick="alterarStatusJogo('fechado')">🔒 FECHAR SITE</button>
+        </div>
+        <div id="txtStatusAtual" style="font-weight: bold; text-align: center;">Status: Carregando...</div>
+    </section>
+
+    <section class="card">
+        <h2>🔮 Globo de Sorteio Sincronizado</h2>
+        <div style="text-align: center;">
+            <div class="bola-grande" id="bolaGlobal">-</div>
+            <button class="btn-purple" onclick="sortearBolaManual()" style="width: 100%; font-size: 16px;">🔮 INSERIR BOLA DO GLOBO</button>
+        </div>
+        <div class="historico-grid" id="historicoGlobal"></div>
+        <button class="btn-red" onclick="limparApenasBolas()" style="font-size: 11px; align-self: center; padding: 5px;">Zerar Apenas Bolas</button>
+    </section>
+
+    <!-- MONITOR PELA BOA -->
+    <section class="card" style="background: #fff7ed; border: 1px solid #ffedd5;">
+        <h2>⚡ Monitor "Pela Boa" (Top 15 Ao Vivo)</h2>
+        <div class="lista-linhas-compacta" id="listaPelaBoaAdmin">
+            <p style="color: #94a3b8; font-size: 13px; text-align: center;">Ninguém próximo do Bingo ainda...</p>
+        </div>
+    </section>
+
+    <section class="card">
+        <h2>📦 Banco de Dados e Estoque</h2>
+        <div style="display: flex; gap: 10px;">
+            <input type="number" id="qtdCartelas" value="5000" style="width: 100px; text-align: center;">
+            <button class="btn-blue" onclick="gerarNovoEstoqueNuvem()" style="flex: 1;">🔥 Limpar Tudo e Gerar Estoque (15 Números)</button>
+        </div>
+        <p id="msgAdmin" style="font-size: 13px; font-weight: bold; text-align: center; color: #10b981;"></p>
+    </section>
+
+    <section class="card" style="background: #eff6ff; border: 1px solid #bfdbfe;">
+        <h2>💳 Solicitações de Créditos (<span id="totalSolicitacoesCredito">0</span>)</h2>
+        <div class="lista-linhas-compacta" id="listaSolicitacoesCredito"></div>
+    </section>
+
+    <section class="card">
+        <h2>👥 Participantes Registrados (<span id="totalCartelas">0</span>)</h2>
+        <div class="lista-linhas-compacta" id="listaCartelasAtivas"></div>
+    </section>
+</div>
+
+<script>
+let bolasSorteadas = [];
+let participantesAtivos = [];
+let eOrganizadorAutenticado = false;
+let solicitacoesCredito = [];
+let possuiVencedorAtivo = false; 
+let ultimoResumoPelaBoa = { faltando1: 0, faltando2: 0 }; 
+
+function falarTexto(texto) {
+    if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        let falar = new SpeechSynthesisUtterance(texto);
+        falar.lang = 'pt-BR';
+        falar.rate = 1.1;
+        window.speechSynthesis.speak(falar);
+    }
+}
+
+// ===== ANIMAÇÃO DO BONECO: clique manual (efeito "pulo") =====
+function animarBonecoAdminClique() {
+    let el = document.getElementById('bonecoMascoteAdmin');
+    if (!el || el.classList.contains('boneco-vencedor')) return; // não interfere na comemoração de vitória
+    el.classList.remove('boneco-pulo');
+    void el.offsetWidth; // força reinício da animação
+    el.classList.add('boneco-pulo');
+    el.addEventListener('animationend', function limpar(e) {
+        if (e.animationName === 'bonecoPulo') {
+            el.classList.remove('boneco-pulo');
+            el.removeEventListener('animationend', limpar);
+        }
+    });
+}
+
+db.ref('jogo/preco').on('value', snap => { document.getElementById('topGlobalPreco').innerText = "R$ " + (snap.val() || "0,00"); });
+db.ref('jogo/premio').on('value', snap => { document.getElementById('topGlobalPremio').innerText = snap.val() || "A Definir"; });
+db.ref('jogo/status').on('value', snap => {
+    let s = (snap.val() || 'fechado').toLowerCase();
+    document.getElementById('txtStatusAtual').innerHTML = s === 'aberto' ? "<span style='color:green;'>🔓 ABERTO</span>" : "<span style='color:red;'>🔒 FECHADO</span>";
+});
+
+function montarGradeBilhete(numeros) {
+    let nums = numeros.map(n => parseInt(n));
+    let celulas = nums.map(n => `<div class="bilhete-num">${n}</div>`).join('');
+    return `<div class="bilhete-grade">${celulas}</div>`;
+}
+
+function renderizarBilhetesVencedores(vencedores) {
+    let wrapper = document.getElementById('wrapperBilhetesParaImprimir');
+    wrapper.innerHTML = "";
+    vencedores.forEach(v => {
+        let bloco = document.createElement('div');
+        bloco.className = "bilhete-vencedor";
+        bloco.innerHTML = `
+            <div class="bilhete-topo">
+                <span class="bilhete-titulo">🏆 Bilhete Premiado — Cartela #${v.id}</span>
+            </div>
+            <div class="bilhete-nome">${v.nome}</div>
+            <div class="bilhete-info">📞 ${v.telefone || 'N/A'}</div>
+            ${montarGradeBilhete(v.numeros || [])}
+        `;
+        wrapper.appendChild(bloco);
+    });
+}
+
+db.ref('jogo/vencedores').on('value', snap => {
+    let dados = snap.val();
+    let vencedores = dados ? Object.values(dados) : [];
+    let box = document.getElementById('boxVencedorAdmin');
+    let boneco = document.getElementById('bonecoMascoteAdmin');
+    let titulo = document.getElementById('txtTituloVencedorAdmin');
+
+    if(vencedores.length > 0) {
+        possuiVencedorAtivo = true;
+        box.style.display = 'block';
+        titulo.innerHTML = vencedores.length > 1
+            ? `🚨 🔥 BINGO! TEMOS ${vencedores.length} GANHADORES EMPATADOS! 🔥 🚨`
+            : `🚨 🔥 BINGO! TEMOS UM GANHADOR COROADO! 🔥 🚨`;
+
+        renderizarBilhetesVencedores(vencedores);
+
+        if(vencedores.length > 1) {
+            let nomes = vencedores.map(v => v.nome).join(', ');
+            falarTexto(`Atenção! Deu empate! Temos ${vencedores.length} ganhadores nesta rodada: ${nomes}!`);
+        } else {
+            let v = vencedores[0];
+            falarTexto(`Atenção! Temos um ganhador! Parabéns para ${v.nome}, que fechou a cartela número ${v.id}!`);
+        }
+        if (boneco) boneco.classList.add('boneco-vencedor');
+    } else {
+        possuiVencedorAtivo = false; 
+        box.style.display = 'none';
+        document.getElementById('wrapperBilhetesParaImprimir').innerHTML = "";
+        if (boneco) boneco.classList.remove('boneco-vencedor');
+    }
+});
+
+db.ref('jogo/bolas').on('value', snap => {
+    let dados = snap.val() || [];
+    bolasSorteadas = Object.values(dados).map(b => parseInt(b));
+    document.getElementById('bolaGlobal').innerText = bolasSorteadas.length > 0 ? bolasSorteadas[bolasSorteadas.length - 1] : "-";
+    
+    let hist = document.getElementById('historicoGlobal');
+    hist.innerHTML = "";
+    bolasSorteadas.forEach(b => {
+        let mini = document.createElement('div');
+        mini.className = 'bola-mini'; mini.innerText = b; hist.appendChild(mini);
+    });
+    
+    if(bolasSorteadas.length > 0) {
+        let ultima = bolasSorteadas[bolasSorteadas.length - 1];
+        falarTexto(`Bola número ${ultima}`);
+        animarBonecoAdminClique(); // o boneco reage a cada nova bola sorteada
+    }
+    
+    atualizarTelas();
+});
+
+db.ref('participantes').on('value', snap => {
+    participantesAtivos = [];
+    snap.forEach(c => { if(c.val()) participantesAtivos.push(c.val()); });
+    document.getElementById('totalCartelas').innerText = participantesAtivos.length;
+    atualizarTelas();
+});
+
+db.ref('solicitacoesCredito').on('value', snap => {
+    solicitacoesCredito = [];
+    snap.forEach(c => { if(c.val()) solicitacoesCredito.push(c.val()); });
+    if (eOrganizadorAutenticado) renderizarSolicitacoesCredito();
+});
+
+function atualizarTelas() {
+    if (eOrganizadorAutenticado) {
+        renderizarListaParticipantes();
+        renderizarSolicitacoesCredito();
+        calcularPelaBoa();
+    }
+}
+
+function calcularPelaBoa() {
+    let container = document.getElementById('listaPelaBoaAdmin');
+    container.innerHTML = "";
+    let ranking = [];
+
+    participantesAtivos.forEach(p => {
+        if(p.status === 'paga' && p.numeros) {
+            let nNums = p.numeros.map(n => parseInt(n));
+            let acertados = nNums.filter(n => bolasSorteadas.includes(n)).length;
+            let faltando = nNums.length - acertados;
+
+            if(faltando <= 2 && faltando > 0) {
+                ranking.push({ p, faltando });
+            }
+        }
+    });
+
+    ranking.sort((a,b) => a.faltando - b.faltando);
+
+    if(ranking.length === 0) {
+        container.innerHTML = `<p style="color:#94a3b8; text-align:center; font-size:13px;">Ninguém próximo do Bingo...</p>`;
+        ultimoResumoPelaBoa = { faltando1: 0, faltando2: 0 };
+        return;
+    }
+
+    ranking.slice(0, 15).forEach(item => {
+        let div = document.createElement('div');
+        div.className = "item-lista-admin";
+        div.style.background = item.faltando === 1 ? "#ffedd5" : "#f8fafc";
+        div.innerHTML = `<div><strong>#${item.p.id} - ${item.p.nome}</strong></div>
+                         <div style="font-weight:bold; color:${item.faltando===1?'#ea580c':'#475569'};">Faltam ${item.faltando}</div>`;
+        container.appendChild(div);
+    });
+
+    let totalFaltando1 = ranking.filter(i => i.faltando === 1).length;
+    let totalFaltando2 = ranking.filter(i => i.faltando === 2).length;
+
+    if(!possuiVencedorAtivo && (totalFaltando1 !== ultimoResumoPelaBoa.faltando1 || totalFaltando2 !== ultimoResumoPelaBoa.faltando2)) {
+        let partes = [];
+        if(totalFaltando1 > 0) partes.push(`${totalFaltando1 === 1 ? 'Uma pessoa está' : totalFaltando1 + ' pessoas estão'} faltando apenas 1 número`);
+        if(totalFaltando2 > 0) partes.push(`${totalFaltando2 === 1 ? 'Uma pessoa está' : totalFaltando2 + ' pessoas estão'} faltando 2 números`);
+        if(partes.length > 0) falarTexto("Atenção! " + partes.join(", e "));
+    }
+    ultimoResumoPelaBoa = { faltando1: totalFaltando1, faltando2: totalFaltando2 };
+}
+
+function liberarPainelAdmin() {
+    if (document.getElementById('senhaAdmin').value === "jd123") {
+        eOrganizadorAutenticado = true;
+        document.getElementById('cardLoginAdmin').style.display = 'none';
+        document.getElementById('painelAdminControle').style.display = 'flex';
+        atualizarTelas();
+    } else alert("Senha incorreta!");
+}
+
+function salvarConfiguracoesGlobais() {
+    db.ref('jogo').update({ premio: document.getElementById('inpPremioJogo').value, preco: document.getElementById('inpValorCartela').value });
+    alert("Configurações salvas!");
+}
+
+function alterarStatusJogo(st) {
+    let statusFormatado = st.toLowerCase();
+    if(statusFormatado === 'fechado') {
+        let pendentes = participantesAtivos.filter(p => p.status !== 'paga');
+        if(pendentes.length > 0) {
+            let confirmar = confirm(`Ao fechar o site, ${pendentes.length} cartela(s) pendente(s) (não paga(s)) serão descartadas e devolvidas ao estoque. Deseja continuar?`);
+            if(!confirmar) return;
+            pendentes.forEach(p => {
+                db.ref('participantes/' + p.id).remove();
+                db.ref('estoque/' + p.id).update({ status: 'livre' });
+            });
+        }
+    }
+    db.ref('jogo/status').set(statusFormatado);
+}
+
+function sortearBolaManual() {
+    if (possuiVencedorAtivo) {
+        alert("⚠️ Ação Bloqueada! Esta rodada já possui um ganhador e está encerrada.");
+        return;
+    }
+
+    db.ref('jogo/vencedores').once('value').then(snap => {
+        if(snap.exists() && snap.val() !== null) {
+            alert("⚠️ Operação Negada! O banco detectou que já há vencedor(es) coroado(s) para esta rodada.");
+            return;
+        }
+
+        let n = parseInt(prompt("Número da bola (1-75):"));
+        if(isNaN(n) || n<1 || n>75 || bolasSorteadas.includes(n)) return alert("Número inválido ou já sorteado!");
+        bolasSorteadas.push(n);
+        db.ref('jogo/bolas').set(bolasSorteadas);
+        
+        // Usa filter (não find) para capturar TODOS que baterem bingo na mesma bola, não só o primeiro
+        let vencedoresEncontrados = participantesAtivos.filter(j =>
+            j.status === 'paga' && j.numeros.map(num => parseInt(num)).every(num => bolasSorteadas.includes(num))
+        );
+
+        if(vencedoresEncontrados.length > 0) {
+            let listaVencedores = {};
+            vencedoresEncontrados.forEach(v => {
+                listaVencedores[v.id] = { id: v.id, nome: v.nome, telefone: v.telefone || "N/A", numeros: v.numeros };
+            });
+            db.ref('jogo/vencedores').set(listaVencedores);
+        }
+    });
+}
+
+function limparApenasBolas() {
+    if(confirm("Limpar Globo?")) { db.ref('jogo/bolas').set(null); db.ref('jogo/vencedores').set(null); }
+}
+
+function gerarNovoEstoqueNuvem() {
+    let qtd = parseInt(document.getElementById('qtdCartelas').value) || 5000;
+    if(!confirm("Isso apagará todas as vendas! Continuar?")) return;
+    
+    db.ref('participantes').set(null); db.ref('jogo/bolas').set(null); db.ref('jogo/vencedores').set(null); db.ref('estoque').set(null);
+    
+    let novoEstoque = {};
+    let combinacoesUsadas = new Set(); // garante que nenhuma cartela se repita
+    let tentativasMaximas = qtd * 50; // proteção contra loop infinito se qtd for maior que o possível
+    let gerados = 0;
+    let tentativas = 0;
+
+    while (gerados < qtd && tentativas < tentativasMaximas) {
+        tentativas++;
+        let s = new Set();
+        while(s.size < 15) s.add(Math.floor(Math.random() * 75) + 1);
+        let numeros = Array.from(s).sort((a,b)=>a-b);
+        let chave = numeros.join(',');
+
+        if (combinacoesUsadas.has(chave)) continue; // já existe, gera outra
+
+        combinacoesUsadas.add(chave);
+        gerados++;
+        novoEstoque[gerados] = { id: gerados, numeros: numeros, status: 'livre' };
+    }
+
+    db.ref('estoque').set(novoEstoque).then(() => {
+        if (gerados < qtd) {
+            alert(`⚠️ Foram geradas ${gerados} cartelas únicas de ${qtd} solicitadas (limite de combinações possíveis atingido).`);
+        } else {
+            alert(`Estoque de ${gerados} cartelas únicas (15 dezenas cada) gerado com sucesso!`);
+        }
+    });
+}
+
+function renderizarSolicitacoesCredito() {
+    let pendentes = solicitacoesCredito.filter(s => s.status === 'pendente');
+    let elTotal = document.getElementById('totalSolicitacoesCredito');
+    if (elTotal) elTotal.innerText = pendentes.length;
+
+    let container = document.getElementById('listaSolicitacoesCredito');
+    if (!container) return;
+    container.innerHTML = "";
+
+    if (pendentes.length === 0) {
+        container.innerHTML = `<p style="color:#94a3b8; font-size:13px; text-align:center;">Nenhuma solicitação pendente.</p>`;
+        return;
+    }
+
+    pendentes.forEach(s => {
+        let div = document.createElement('div');
+        div.className = "item-lista-admin";
+        div.innerHTML = `<div><strong>${s.nome}</strong><br><small>📞 ${s.telefone} — R$ ${parseFloat(s.valor).toFixed(2).replace('.', ',')}</small></div>`;
+
+        let b = document.createElement('button');
+        b.innerText = "Confirmar Crédito";
+        b.style.cssText = "background:#10b981; color:white; padding:6px 10px; font-size:12px; width:auto;";
+        b.onclick = () => confirmarSolicitacaoCredito(s);
+
+        div.appendChild(b);
+        container.appendChild(div);
+    });
+}
+
+function confirmarSolicitacaoCredito(s) {
+    let tel = (s.telefone || '').replace(/\D/g, '');
+    if (!tel) return alert("Telefone inválido nesta solicitação.");
+
+    db.ref('creditos/' + tel).once('value').then(snap => {
+        let saldoAtual = parseFloat(snap.val()) || 0;
+        let novoSaldo = saldoAtual + parseFloat(s.valor);
+
+        db.ref('creditos/' + tel).set(novoSaldo);
+        db.ref('solicitacoesCredito/' + s.id).update({ status: 'aprovado' });
+
+        alert(`✅ Crédito de R$ ${parseFloat(s.valor).toFixed(2).replace('.', ',')} liberado para ${s.nome}. Novo saldo: R$ ${novoSaldo.toFixed(2).replace('.', ',')}`);
+    });
+}
+
+function renderizarListaParticipantes() {
+    let container = document.getElementById('listaCartelasAtivas'); container.innerHTML = "";
+    participantesAtivos.forEach(p => {
+        let div = document.createElement('div'); div.className = "item-lista-admin";
+        div.innerHTML = `<div><strong>#${p.id} - ${p.nome}</strong><br><small>${p.status === 'paga'?'[PAGA]':'[PENDENTE]'}</small></div>`;
+        if(p.status !== 'paga') {
+            let b = document.createElement('button'); b.innerText = "Confirmar"; b.style.cssText="background:green;color:white;padding:4px;";
+            b.onclick = () => { db.ref('participantes/'+p.id).update({status:'paga'}); db.ref('estoque/'+p.id).update({status:'ocupado'}); };
+            div.appendChild(b);
+        }
+        container.appendChild(div);
+    });
+}
+</script>
+</body>
+</html>
