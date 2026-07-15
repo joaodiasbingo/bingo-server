@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const admin = require('firebase-admin');
-
+console.log('DIAGNOSTICO -> typeof admin:', typeof admin, '| typeof admin.credential:', typeof admin.credential);
 const app = express();
 
 // Permite que o servidor entenda dados enviados em formato JSON
