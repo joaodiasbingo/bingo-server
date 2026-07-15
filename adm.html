@@ -482,7 +482,7 @@ function gerarNovoEstoqueNuvem() {
 }
 
 function renderizarSolicitacoesCredito() {
-    let pendentes = solicitacoesCredito.filter(s => s.status === 'pendente');
+    let pendentes = solicitacoesCredito.filter(s => s.status === 'pendente' || s.status === 'aguardando_pagamento');
     let elTotal = document.getElementById('totalSolicitacoesCredito');
     if (elTotal) elTotal.innerText = pendentes.length;
 
@@ -498,16 +498,34 @@ function renderizarSolicitacoesCredito() {
     pendentes.forEach(s => {
         let div = document.createElement('div');
         div.className = "item-lista-admin";
-        div.innerHTML = `<div><strong>${s.nome}</strong><br><small>📞 ${s.telefone} — R$ ${parseFloat(s.valor).toFixed(2).replace('.', ',')}</small></div>`;
+        let statusTexto = s.status === 'aguardando_pagamento' ? '⏳ aguardando Pix' : '📋 manual';
+        div.innerHTML = `<div><strong>${s.nome}</strong><br><small>📞 ${s.telefone} — R$ ${parseFloat(s.valor).toFixed(2).replace('.', ',')} (${statusTexto})</small></div>`;
 
-        let b = document.createElement('button');
-        b.innerText = "Confirmar Crédito";
-        b.style.cssText = "background:#10b981; color:white; padding:6px 10px; font-size:12px; width:auto;";
-        b.onclick = () => confirmarSolicitacaoCredito(s);
+        let wrapperBotoes = document.createElement('div');
+        wrapperBotoes.style.cssText = "display:flex; gap:6px;";
 
-        div.appendChild(b);
+        if (s.status === 'pendente') {
+            let bConfirmar = document.createElement('button');
+            bConfirmar.innerText = "Confirmar Crédito";
+            bConfirmar.style.cssText = "background:#10b981; color:white; padding:6px 10px; font-size:12px; width:auto;";
+            bConfirmar.onclick = () => confirmarSolicitacaoCredito(s);
+            wrapperBotoes.appendChild(bConfirmar);
+        }
+
+        let bRecusar = document.createElement('button');
+        bRecusar.innerText = "Recusar/Cancelar";
+        bRecusar.style.cssText = "background:#ef4444; color:white; padding:6px 10px; font-size:12px; width:auto;";
+        bRecusar.onclick = () => recusarSolicitacaoCredito(s);
+        wrapperBotoes.appendChild(bRecusar);
+
+        div.appendChild(wrapperBotoes);
         container.appendChild(div);
     });
+}
+
+function recusarSolicitacaoCredito(s) {
+    if (!confirm(`Cancelar a solicitação de R$ ${parseFloat(s.valor).toFixed(2).replace('.', ',')} de ${s.nome}? O cliente não receberá o crédito.`)) return;
+    db.ref('solicitacoesCredito/' + s.id).remove();
 }
 
 function confirmarSolicitacaoCredito(s) {
