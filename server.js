@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
-const admin = require('firebase-admin');
-console.log('DIAGNOSTICO -> typeof admin:', typeof admin, '| typeof admin.credential:', typeof admin.credential);
+const { initializeApp, cert, getApps } = require('firebase-admin/app');
+const { getDatabase } = require('firebase-admin/database');
 const app = express();
 
 // Permite que o servidor entenda dados enviados em formato JSON
@@ -26,12 +26,14 @@ function obterDatabase() {
     const jsonTexto = Buffer.from(base64, 'base64').toString('utf-8');
     const credenciais = JSON.parse(jsonTexto);
 
-    admin.initializeApp({
-        credential: admin.credential.cert(credenciais),
-        databaseURL: 'https://jd-show-premios-novo-default-rtdb.firebaseio.com'
-    });
+    if (!getApps().length) {
+        initializeApp({
+            credential: cert(credenciais),
+            databaseURL: 'https://jd-show-premios-novo-default-rtdb.firebaseio.com'
+        });
+    }
 
-    dbFirebase = admin.database();
+    dbFirebase = getDatabase();
     return dbFirebase;
 }
 
