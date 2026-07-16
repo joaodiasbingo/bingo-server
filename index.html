@@ -197,9 +197,10 @@ var db = firebase.database();
         </div>
         <div class="form-group" id="blocoFormComprarCredito">
             <label>Adicionar Créditos (R$)</label>
-            <div style="display: flex; gap: 8px;">
-                <input type="number" id="valorComprarCredito" placeholder="Ex: 50" min="1">
-                <button class="btn-purple" style="width: auto; white-space: nowrap; padding: 10px 16px;" onclick="solicitarCompraCredito()">💳 Comprar</button>
+            <input type="number" id="valorComprarCredito" placeholder="Ex: 50" min="1">
+            <div style="display: flex; gap: 8px; margin-top: 4px;">
+                <button class="btn-purple" style="flex: 1;" onclick="solicitarCompraCredito(true)">⚡ Pix Automático</button>
+                <button class="btn-green" style="flex: 1;" onclick="solicitarCompraCredito(false)">💵 Dinheiro / Manual</button>
             </div>
         </div>
         <p style="font-size: 12px; color: #64748b; text-align: center;" id="txtAvisoCredito">Preencha seu nome e telefone abaixo antes de comprar créditos.</p>
@@ -298,6 +299,7 @@ let statusAtualJogo = 'fechado';
 let saldoCreditosAtual = 0;
 let precoCartelaAtual = 0;
 let ultimoIdReservado = null;
+let rodadaAtualId = 1;
 
 const LIMITE_CARTELAS_POR_TELEFONE = 4;
 
@@ -369,7 +371,8 @@ function atualizarBotaoPagarComCredito() {
 
 let listenerSolicitacaoAtiva = null;
 
-function solicitarCompraCredito() {
+// viaPix = true -> tenta gerar Pix automático; viaPix = false -> registra direto como pagamento manual (dinheiro/comprovante)
+function solicitarCompraCredito(viaPix) {
     let nome = document.getElementById('cliNome').value.trim();
     let tel = document.getElementById('cliTelefone').value.trim();
     let valor = parseFloat(document.getElementById('valorComprarCredito').value);
@@ -380,12 +383,31 @@ function solicitarCompraCredito() {
     let novaRef = db.ref('solicitacoesCredito').push();
     let solicitacaoId = novaRef.key;
 
+    if (!viaPix) {
+        novaRef.set({
+            id: solicitacaoId,
+            nome: nome,
+            telefone: tel,
+            valor: valor,
+            status: 'pendente',
+            formaPagamento: 'manual',
+            criadoEm: Date.now()
+        }).then(() => {
+            document.getElementById('valorComprarCredito').value = '';
+            alert("✅ Solicitação registrada! Envie o comprovante ou combine o pagamento em dinheiro pelo WhatsApp. O crédito será liberado assim que o ADM confirmar.");
+            let msg = encodeURIComponent(`Olá! Quero adicionar R$ ${valor.toFixed(2).replace('.', ',')} de crédito na minha conta (${nome}), pagamento em dinheiro/comprovante manual.`);
+            window.open(`https://wa.me/5592993154399?text=${msg}`, '_blank');
+        });
+        return;
+    }
+
     novaRef.set({
         id: solicitacaoId,
         nome: nome,
         telefone: tel,
         valor: valor,
         status: 'aguardando_pagamento',
+        formaPagamento: 'pix',
         criadoEm: Date.now()
     }).then(() => {
         document.getElementById('blocoFormComprarCredito').style.display = 'none';
@@ -416,7 +438,7 @@ function solicitarCompraCredito() {
 
 function mostrarFalhaPixUsarManual(nome, tel, valor, solicitacaoId, motivo) {
     console.error("Pix automático indisponível:", motivo);
-    db.ref('solicitacoesCredito/' + solicitacaoId).update({ status: 'pendente' });
+    db.ref('solicitacoesCredito/' + solicitacaoId).update({ status: 'pendente', formaPagamento: 'manual' });
     document.getElementById('blocoQrPixCredito').style.display = 'none';
     document.getElementById('blocoFormComprarCredito').style.display = 'flex';
     alert("⚠️ Não foi possível gerar o Pix automático agora. Vamos te direcionar para o pagamento manual via WhatsApp.");
@@ -460,11 +482,23 @@ function pagarCartelaComCredito() {
     }
 
     let tel = normalizarTelefone(document.getElementById('cliTelefone').value);
+    let nome = document.getElementById('cliNome').value.trim();
     let novoSaldo = saldoCreditosAtual - precoCartelaAtual;
 
     db.ref('creditos/' + tel).set(novoSaldo);
     db.ref('participantes/' + ultimoIdReservado).update({ status: 'paga', pagoComCredito: true });
     db.ref('estoque/' + ultimoIdReservado).update({ status: 'ocupado' });
+
+    // Registro da venda para apuração no painel do ADM
+    db.ref('vendas').push({
+        cartelaId: ultimoIdReservado,
+        nome: nome,
+        telefone: tel,
+        valor: precoCartelaAtual,
+        formaPagamento: 'credito',
+        timestamp: Date.now(),
+        rodadaId: rodadaAtualId
+    });
 
     alert("✅ Pagamento feito com seus créditos! Sua cartela já está liberada.");
     document.getElementById('blocoCanaisPagamento').style.display = 'none';
@@ -485,6 +519,10 @@ function atualizarContadorBilhetes() {
         }
     }
 }
+
+db.ref('jogo/rodadaAtual').on('value', snap => {
+    rodadaAtualId = snap.val() || 1;
+});
 
 db.ref('jogo/preco').on('value', snap => {
     let bruto = (snap.val() || "0").toString().replace(',', '.');

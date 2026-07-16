@@ -194,6 +194,31 @@ var db = firebase.database();
         <h2>👥 Participantes Registrados (<span id="totalCartelas">0</span>)</h2>
         <div class="lista-linhas-compacta" id="listaCartelasAtivas"></div>
     </section>
+
+    <!-- RESUMO FINANCEIRO DA RODADA ATUAL -->
+    <section class="card" style="background: #f0fdf4; border: 1px solid #bbf7d0;">
+        <h2>📊 Resumo Financeiro (Rodada Atual #<span id="resFinRodadaAtualId">1</span>)</h2>
+        <div class="info-header-box" style="margin: 0;">
+            <div>🎫 Cartelas vendidas: <span id="resFinQtdRodada">0</span></div>
+            <div>💰 Arrecadado: <span id="resFinArrecadadoRodada">R$ 0,00</span></div>
+        </div>
+    </section>
+
+    <!-- HISTÓRICO POR RODADA -->
+    <section class="card">
+        <h2>📅 Histórico por Rodada</h2>
+        <div class="lista-linhas-compacta" id="listaHistoricoRodadas">
+            <p style="color: #94a3b8; font-size: 13px; text-align: center;">Nenhuma rodada encerrada ainda.</p>
+        </div>
+    </section>
+
+    <!-- RESUMO MENSAL -->
+    <section class="card">
+        <h2>🗓️ Resumo Mensal</h2>
+        <div class="lista-linhas-compacta" id="listaResumoMensal">
+            <p style="color: #94a3b8; font-size: 13px; text-align: center;">Nenhuma venda registrada ainda.</p>
+        </div>
+    </section>
 </div>
 
 <script>
@@ -203,6 +228,12 @@ let eOrganizadorAutenticado = false;
 let solicitacoesCredito = [];
 let possuiVencedorAtivo = false; 
 let ultimoResumoPelaBoa = { faltando1: 0, faltando2: 0 }; 
+
+// ===== Apuração financeira =====
+let todasVendas = [];
+let todasRodadas = {};
+let rodadaAtualId = 1;
+let precoCartelaAtualAdmin = 0;
 
 function falarTexto(texto) {
     if ('speechSynthesis' in window) {
@@ -229,11 +260,22 @@ function animarBonecoAdminClique() {
     });
 }
 
-db.ref('jogo/preco').on('value', snap => { document.getElementById('topGlobalPreco').innerText = "R$ " + (snap.val() || "0,00"); });
+db.ref('jogo/preco').on('value', snap => {
+    document.getElementById('topGlobalPreco').innerText = "R$ " + (snap.val() || "0,00");
+    let bruto = (snap.val() || "0").toString().replace(',', '.');
+    precoCartelaAtualAdmin = parseFloat(bruto) || 0;
+});
 db.ref('jogo/premio').on('value', snap => { document.getElementById('topGlobalPremio').innerText = snap.val() || "A Definir"; });
 db.ref('jogo/status').on('value', snap => {
     let s = (snap.val() || 'fechado').toLowerCase();
     document.getElementById('txtStatusAtual').innerHTML = s === 'aberto' ? "<span style='color:green;'>🔓 ABERTO</span>" : "<span style='color:red;'>🔒 FECHADO</span>";
+});
+
+db.ref('jogo/rodadaAtual').on('value', snap => {
+    rodadaAtualId = snap.val() || 1;
+    let el = document.getElementById('resFinRodadaAtualId');
+    if (el) el.innerText = rodadaAtualId;
+    if (eOrganizadorAutenticado) renderizarResumoFinanceiro();
 });
 
 function montarGradeBilhete(numeros) {
@@ -326,10 +368,22 @@ db.ref('solicitacoesCredito').on('value', snap => {
     if (eOrganizadorAutenticado) renderizarSolicitacoesCredito();
 });
 
+db.ref('vendas').on('value', snap => {
+    todasVendas = [];
+    snap.forEach(c => { if (c.val()) todasVendas.push(c.val()); });
+    if (eOrganizadorAutenticado) renderizarResumoFinanceiro();
+});
+
+db.ref('rodadas').on('value', snap => {
+    todasRodadas = snap.val() || {};
+    if (eOrganizadorAutenticado) renderizarResumoFinanceiro();
+});
+
 function atualizarTelas() {
     if (eOrganizadorAutenticado) {
         renderizarListaParticipantes();
         renderizarSolicitacoesCredito();
+        renderizarResumoFinanceiro();
         calcularPelaBoa();
     }
 }
@@ -449,7 +503,27 @@ function limparApenasBolas() {
 function gerarNovoEstoqueNuvem() {
     let qtd = parseInt(document.getElementById('qtdCartelas').value) || 5000;
     if(!confirm("Isso apagará todas as vendas! Continuar?")) return;
-    
+
+    // Antes de zerar, guarda um "retrato" da rodada que está terminando:
+    // o prêmio que estava configurado no momento do encerramento, para a apuração histórica.
+    db.ref('jogo/rodadaAtual').once('value').then(snapRodada => {
+        let rodadaEncerrada = snapRodada.val() || 1;
+
+        db.ref('jogo/premio').once('value').then(snapPremio => {
+            db.ref('rodadas/' + rodadaEncerrada).set({
+                id: rodadaEncerrada,
+                premio: snapPremio.val() || '',
+                encerradaEm: Date.now()
+            }).then(() => {
+                let novaRodada = rodadaEncerrada + 1;
+                db.ref('jogo/rodadaAtual').set(novaRodada);
+                prosseguirGeracaoEstoque(qtd);
+            });
+        });
+    });
+}
+
+function prosseguirGeracaoEstoque(qtd) {
     db.ref('participantes').set(null); db.ref('jogo/bolas').set(null); db.ref('jogo/vencedores').set(null); db.ref('estoque').set(null);
     
     let novoEstoque = {};
@@ -550,11 +624,111 @@ function renderizarListaParticipantes() {
         div.innerHTML = `<div><strong>#${p.id} - ${p.nome}</strong><br><small>${p.status === 'paga'?'[PAGA]':'[PENDENTE]'}</small></div>`;
         if(p.status !== 'paga') {
             let b = document.createElement('button'); b.innerText = "Confirmar"; b.style.cssText="background:green;color:white;padding:4px;";
-            b.onclick = () => { db.ref('participantes/'+p.id).update({status:'paga'}); db.ref('estoque/'+p.id).update({status:'ocupado'}); };
+            b.onclick = () => {
+                db.ref('participantes/'+p.id).update({status:'paga'});
+                db.ref('estoque/'+p.id).update({status:'ocupado'});
+
+                // Registro da venda (pagamento em dinheiro confirmado manualmente pelo ADM) para apuração
+                db.ref('vendas').push({
+                    cartelaId: p.id,
+                    nome: p.nome,
+                    telefone: p.telefone || '',
+                    valor: precoCartelaAtualAdmin,
+                    formaPagamento: 'dinheiro',
+                    timestamp: Date.now(),
+                    rodadaId: rodadaAtualId
+                });
+            };
             div.appendChild(b);
         }
         container.appendChild(div);
     });
+}
+
+// Extrai um número de um texto de prêmio, ex: "R$ 1.200,00" -> 1200, "iPhone 15" -> null
+function extrairValorNumerico(texto) {
+    if (!texto) return null;
+    let limpo = texto.toString().replace(/[^\d,.-]/g, '');
+    limpo = limpo.replace(/\.(?=\d{3}(,|$))/g, ''); // remove pontos de milhar
+    limpo = limpo.replace(',', '.');
+    let n = parseFloat(limpo);
+    return isNaN(n) ? null : n;
+}
+
+function renderizarResumoFinanceiro() {
+    // ----- Rodada atual -----
+    let vendasRodadaAtual = todasVendas.filter(v => (v.rodadaId || 1) === rodadaAtualId);
+    let qtdRodadaAtual = vendasRodadaAtual.length;
+    let arrecadadoRodadaAtual = vendasRodadaAtual.reduce((soma, v) => soma + (parseFloat(v.valor) || 0), 0);
+
+    let elQtd = document.getElementById('resFinQtdRodada');
+    let elArrecadado = document.getElementById('resFinArrecadadoRodada');
+    if (elQtd) elQtd.innerText = qtdRodadaAtual;
+    if (elArrecadado) elArrecadado.innerText = "R$ " + arrecadadoRodadaAtual.toFixed(2).replace('.', ',');
+
+    // ----- Histórico por rodada (rodadas já encerradas) -----
+    let containerHist = document.getElementById('listaHistoricoRodadas');
+    if (containerHist) {
+        containerHist.innerHTML = "";
+        let idsRodadas = Object.keys(todasRodadas).map(id => parseInt(id)).sort((a, b) => b - a);
+
+        if (idsRodadas.length === 0) {
+            containerHist.innerHTML = `<p style="color:#94a3b8; font-size:13px; text-align:center;">Nenhuma rodada encerrada ainda.</p>`;
+        } else {
+            idsRodadas.forEach(id => {
+                let rodada = todasRodadas[id];
+                let vendasDaRodada = todasVendas.filter(v => (v.rodadaId || 1) === id);
+                let qtd = vendasDaRodada.length;
+                let arrecadado = vendasDaRodada.reduce((s, v) => s + (parseFloat(v.valor) || 0), 0);
+                let premioNumerico = extrairValorNumerico(rodada.premio);
+                let lucroTexto = premioNumerico !== null
+                    ? ("R$ " + (arrecadado - premioNumerico).toFixed(2).replace('.', ','))
+                    : "N/A (prêmio não numérico)";
+
+                let div = document.createElement('div');
+                div.className = "item-lista-admin";
+                div.style.flexDirection = "column";
+                div.style.alignItems = "flex-start";
+                div.style.gap = "4px";
+                div.innerHTML = `<div><strong>Rodada #${id}</strong></div>
+                    <div style="font-size:12px; color:#475569;">🎫 ${qtd} cartelas | 💰 R$ ${arrecadado.toFixed(2).replace('.', ',')} | 🏆 ${rodada.premio || '-'}</div>
+                    <div style="font-weight:bold; font-size:12px; color:#0f172a;">Lucro: ${lucroTexto}</div>`;
+                containerHist.appendChild(div);
+            });
+        }
+    }
+
+    // ----- Resumo mensal (agrupado pela data da venda) -----
+    let porMes = {};
+    todasVendas.forEach(v => {
+        let data = new Date(v.timestamp || Date.now());
+        let chave = data.getFullYear() + '-' + String(data.getMonth() + 1).padStart(2, '0');
+        if (!porMes[chave]) porMes[chave] = { qtd: 0, arrecadado: 0 };
+        porMes[chave].qtd++;
+        porMes[chave].arrecadado += parseFloat(v.valor) || 0;
+    });
+
+    let containerMes = document.getElementById('listaResumoMensal');
+    if (containerMes) {
+        containerMes.innerHTML = "";
+        let chavesMes = Object.keys(porMes).sort().reverse();
+        let nomesMeses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+        if (chavesMes.length === 0) {
+            containerMes.innerHTML = `<p style="color:#94a3b8; font-size:13px; text-align:center;">Nenhuma venda registrada ainda.</p>`;
+        } else {
+            chavesMes.forEach(chave => {
+                let partes = chave.split('-');
+                let ano = partes[0], mes = partes[1];
+                let m = porMes[chave];
+                let div = document.createElement('div');
+                div.className = "item-lista-admin";
+                div.innerHTML = `<div><strong>${nomesMeses[parseInt(mes) - 1]}/${ano}</strong></div>
+                    <div>🎫 ${m.qtd} | 💰 R$ ${m.arrecadado.toFixed(2).replace('.', ',')}</div>`;
+                containerMes.appendChild(div);
+            });
+        }
+    }
 }
 </script>
 </body>
