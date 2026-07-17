@@ -110,6 +110,8 @@
         .alerta-vencedor { background: #fef2f2; border: 3px dashed #ef4444; color: #991b1b; padding: 15px; border-radius: 8px; text-align: center; font-weight: bold; margin-bottom: 15px; display: none; animation: pulse 1.5s infinite; }
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.02); } 100% { transform: scale(1); } }
 
+        .aviso-divisao-premio { background: #fef9c3; border: 1px solid #eab308; color: #854d0e; padding: 8px 12px; border-radius: 6px; font-size: 13px; margin-bottom: 8px; display: none; }
+
         /* ===== BILHETE DO VENCEDOR (grade 3x5, 15 números) ===== */
         .wrapper-bilhetes-vencedores { display: flex; flex-direction: column; gap: 14px; margin-top: 10px; text-align: left; }
         .bilhete-vencedor { background: #fff; border: 3px solid #f59e0b; border-radius: 10px; padding: 16px; }
@@ -177,6 +179,7 @@ var db = firebase.database();
 
     <div class="card alerta-vencedor" id="boxVencedorCliente">
         <div id="txtTituloVencedorCliente">🚨 🏆 PARABÉNS AO GRANDE GANHADOR! JOGO ENCERRADO! 🏆 🚨</div>
+        <div id="avisoDivisaoPremioCliente" class="aviso-divisao-premio"></div>
         <div id="wrapperBilhetesVencedoresCliente" class="wrapper-bilhetes-vencedores"></div>
     </div>
 
@@ -195,6 +198,7 @@ var db = firebase.database();
         <div class="contador-bilhetes" style="background: #dbeafe; border-color: #93c5fd; color: #1e3a8a;">
             Saldo atual: <span id="txtSaldoCreditos">R$ 0,00</span>
         </div>
+        <p style="font-size: 12px; color: #1e3a8a; text-align: center; font-weight: 600;">⚠️ As cartelas só podem ser adquiridas usando o saldo de créditos. Compre seus créditos abaixo primeiro.</p>
         <div class="form-group" id="blocoFormComprarCredito">
             <label>Adicionar Créditos (R$)</label>
             <input type="number" id="valorComprarCredito" placeholder="Ex: 50" min="1">
@@ -258,23 +262,11 @@ var db = firebase.database();
         </div>
 
         <div id="blocoAcoesIniciaisCompra" style="margin-top: 10px; display: none;">
-            <button class="btn-green" onclick="finalizarEExibirCanaisPagamento()">🛒 Confirmar Reserva de Bilhete</button>
+            <button class="btn-green" onclick="finalizarEExibirCanaisPagamento()">💳 Comprar com Meus Créditos</button>
         </div>
 
         <div class="area-pix" id="blocoCanaisPagamento">
-            <div id="blocoPagarComCredito" style="display: none;">
-                <button class="btn-green" onclick="pagarCartelaComCredito()">💳 Pagar com Meus Créditos (Saldo: <span id="txtSaldoNoPagamento">R$ 0,00</span>)</button>
-                <hr style="border: 0; border-top: 1px solid #cbd5e1; margin: 8px 0;">
-            </div>
-
-            <p style="font-size: 13px; font-weight: bold; color: #065f46;">Chave PIX para Pagamento:</p>
-            <input type="text" id="inputPixCopiaCola" readonly value="jdshowdepremios@gmail.com" style="text-align: center; background: #fff; font-size: 14px; font-weight: bold; color: #1e293b;">
-            <button class="btn-blue" onclick="navigator.clipboard.writeText(document.getElementById('inputPixCopiaCola').value); alert('Chave Copiada!');" style="padding: 6px; font-size: 12px;">📋 Copiar Chave PIX</button>
-            
-            <hr style="border: 0; border-top: 1px solid #cbd5e1; margin: 5px 0;">
-            
-            <button class="btn-green" id="btnWhatsappLink" style="background-color: #25d366;">💬 Quero Pagar em Dinheiro / Enviar Comprovante</button>
-
+            <p style="font-size: 14px; font-weight: bold; color: #065f46; text-align: center;">✅ Cartela paga com seus créditos e já está liberada!</p>
             <button class="btn-purple" onclick="iniciarNovaBusca()" id="btnComprarMais" style="margin-top: 5px;">🎫 Comprar Outra Cartela</button>
         </div>
     </section>
@@ -298,7 +290,6 @@ let ultimoResumoPelaBoa = { faltando1: 0, faltando2: 0 };
 let statusAtualJogo = 'fechado';
 let saldoCreditosAtual = 0;
 let precoCartelaAtual = 0;
-let ultimoIdReservado = null;
 let rodadaAtualId = 1;
 
 const LIMITE_CARTELAS_POR_TELEFONE = 4;
@@ -311,6 +302,16 @@ function falarTexto(texto) {
         falar.rate = 1.1;
         window.speechSynthesis.speak(falar);
     }
+}
+
+// Extrai um número de um texto de prêmio, ex: "R$ 1.200,00" -> 1200, "iPhone 15" -> null
+function extrairValorNumerico(texto) {
+    if (!texto) return null;
+    let limpo = texto.toString().replace(/[^\d,.-]/g, '');
+    limpo = limpo.replace(/\.(?=\d{3}(,|$))/g, '');
+    limpo = limpo.replace(',', '.');
+    let n = parseFloat(limpo);
+    return isNaN(n) ? null : n;
 }
 
 // ===== ANIMAÇÃO DO BONECO: clique manual (efeito "pulo") =====
@@ -354,19 +355,7 @@ function atualizarListenerSaldo() {
         saldoCreditosAtual = parseFloat(snap.val()) || 0;
         let elSaldo = document.getElementById('txtSaldoCreditos');
         if (elSaldo) elSaldo.innerText = "R$ " + saldoCreditosAtual.toFixed(2).replace('.', ',');
-        atualizarBotaoPagarComCredito();
     });
-}
-
-function atualizarBotaoPagarComCredito() {
-    let bloco = document.getElementById('blocoPagarComCredito');
-    if (!bloco) return;
-    if (saldoCreditosAtual >= precoCartelaAtual && precoCartelaAtual > 0) {
-        document.getElementById('txtSaldoNoPagamento').innerText = "R$ " + saldoCreditosAtual.toFixed(2).replace('.', ',');
-        bloco.style.display = 'block';
-    } else {
-        bloco.style.display = 'none';
-    }
 }
 
 let listenerSolicitacaoAtiva = null;
@@ -475,37 +464,6 @@ function cancelarPixCredito() {
     document.getElementById('blocoFormComprarCredito').style.display = 'flex';
 }
 
-function pagarCartelaComCredito() {
-    if (!ultimoIdReservado) return;
-    if (saldoCreditosAtual < precoCartelaAtual) {
-        return alert("Saldo insuficiente para pagar com créditos!");
-    }
-
-    let tel = normalizarTelefone(document.getElementById('cliTelefone').value);
-    let nome = document.getElementById('cliNome').value.trim();
-    let novoSaldo = saldoCreditosAtual - precoCartelaAtual;
-
-    db.ref('creditos/' + tel).set(novoSaldo);
-    db.ref('participantes/' + ultimoIdReservado).update({ status: 'paga', pagoComCredito: true });
-    db.ref('estoque/' + ultimoIdReservado).update({ status: 'ocupado' });
-
-    // Registro da venda para apuração no painel do ADM
-    db.ref('vendas').push({
-        cartelaId: ultimoIdReservado,
-        nome: nome,
-        telefone: tel,
-        valor: precoCartelaAtual,
-        formaPagamento: 'credito',
-        timestamp: Date.now(),
-        rodadaId: rodadaAtualId
-    });
-
-    alert("✅ Pagamento feito com seus créditos! Sua cartela já está liberada.");
-    document.getElementById('blocoCanaisPagamento').style.display = 'none';
-    ultimoIdReservado = null;
-    renderizarMultiplasCartelasCliente();
-}
-
 function atualizarContadorBilhetes() {
     let el = document.getElementById('txtContadorBilhetes');
     if (el) el.innerText = meusBiletesReservados.length;
@@ -528,7 +486,6 @@ db.ref('jogo/preco').on('value', snap => {
     let bruto = (snap.val() || "0").toString().replace(',', '.');
     precoCartelaAtual = parseFloat(bruto) || 0;
     document.getElementById('topClientePreco').innerText = "R$ " + (snap.val() || "0,00");
-    atualizarBotaoPagarComCredito();
 });
 db.ref('jogo/premio').on('value', snap => { document.getElementById('topClientePremio').innerText = snap.val() || "A Definir"; });
 
@@ -590,6 +547,7 @@ db.ref('jogo/vencedores').on('value', snap => {
     let boneco = document.getElementById('bonecoMascote');
     let titulo = document.getElementById('txtTituloVencedorCliente');
     let wrapper = document.getElementById('wrapperBilhetesVencedoresCliente');
+    let avisoDivisao = document.getElementById('avisoDivisaoPremioCliente');
     
     if(vencedores.length > 0) {
         bloqueioVencedorAtivo = true;
@@ -598,6 +556,20 @@ db.ref('jogo/vencedores').on('value', snap => {
         titulo.innerHTML = vencedores.length > 1
             ? `🚨 🏆 DEU EMPATE! ${vencedores.length} GANHADORES NESTA RODADA! 🏆 🚨`
             : `🚨 🏆 PARABÉNS AO GRANDE GANHADOR! JOGO ENCERRADO! 🏆 🚨`;
+
+        if (vencedores.length > 1) {
+            let premioTexto = document.getElementById('topClientePremio').innerText || '';
+            let valorNumerico = extrairValorNumerico(premioTexto);
+            if (valorNumerico !== null) {
+                let parte = valorNumerico / vencedores.length;
+                avisoDivisao.innerText = `💰 O prêmio será dividido igualmente entre os ${vencedores.length} ganhadores: R$ ${parte.toFixed(2).replace('.', ',')} para cada um.`;
+            } else {
+                avisoDivisao.innerText = `💰 O prêmio será dividido entre os ${vencedores.length} ganhadores.`;
+            }
+            avisoDivisao.style.display = 'block';
+        } else {
+            avisoDivisao.style.display = 'none';
+        }
 
         wrapper.innerHTML = "";
         vencedores.forEach(v => {
@@ -615,7 +587,7 @@ db.ref('jogo/vencedores').on('value', snap => {
 
         if(vencedores.length > 1) {
             let nomes = vencedores.map(v => v.nome).join(', ');
-            falarTexto(`Atenção! Deu empate! Temos ${vencedores.length} ganhadores nesta rodada: ${nomes}!`);
+            falarTexto(`Atenção! Deu empate! Temos ${vencedores.length} ganhadores nesta rodada: ${nomes}! O prêmio será dividido entre eles!`);
         } else {
             let v = vencedores[0];
             falarTexto("Atenção! Temos um ganhador! Parabéns para " + v.nome + ", que fechou a cartela número " + v.id + "!");
@@ -625,6 +597,7 @@ db.ref('jogo/vencedores').on('value', snap => {
         bloqueioVencedorAtivo = false;
         box.style.display = 'none';
         wrapper.innerHTML = "";
+        avisoDivisao.style.display = 'none';
         if (boneco) boneco.classList.remove('boneco-vencedor');
     }
 });
@@ -894,8 +867,19 @@ function finalizarEExibirCanaisPagamento() {
         return alert(`⚠️ Este telefone já atingiu o limite máximo de ${LIMITE_CARTELAS_POR_TELEFONE} cartelas nesta rodada!`);
     }
 
+    let telNormalizado = normalizarTelefone(tel);
+    if (telNormalizado !== listenerSaldoAtivo) {
+        atualizarListenerSaldo();
+    }
+
+    // REGRA 1: cartelas só podem ser adquiridas usando o saldo de créditos
+    if (saldoCreditosAtual < precoCartelaAtual) {
+        return alert(`⚠️ Saldo insuficiente! Esta cartela custa R$ ${precoCartelaAtual.toFixed(2).replace('.', ',')} e seu saldo atual é R$ ${saldoCreditosAtual.toFixed(2).replace('.', ',')}. Adicione créditos na seção "💳 Meus Créditos" no topo da página antes de comprar.`);
+    }
+
     let idAlvo = cartelaSelecionada.id;
     let nNumsSalvar = Array.isArray(cartelaSelecionada.numeros) ? cartelaSelecionada.numeros.slice(0, 15) : cartelaSelecionada.numeros.split(',').map(n => parseInt(n.trim()));
+    let novoSaldo = saldoCreditosAtual - precoCartelaAtual;
 
     db.ref('participantes/' + idAlvo).set({
         id: idAlvo,
@@ -904,9 +888,22 @@ function finalizarEExibirCanaisPagamento() {
         telefone: tel,
         endereco: end,
         numeros: nNumsSalvar,
-        status: 'pendente'
+        status: 'paga',
+        pagoComCredito: true
     }).then(() => {
-        alert("✨ Bilhete reservado com sucesso! Efetue o pagamento abaixo para o ADM liberar sua cartela.");
+        db.ref('creditos/' + telNormalizado).set(novoSaldo);
+        db.ref('estoque/' + idAlvo).update({ status: 'ocupado' });
+        db.ref('vendas').push({
+            cartelaId: idAlvo,
+            nome: nome,
+            telefone: tel,
+            valor: precoCartelaAtual,
+            formaPagamento: 'credito',
+            timestamp: Date.now(),
+            rodadaId: rodadaAtualId
+        });
+
+        alert("✅ Cartela paga com seus créditos e liberada com sucesso!");
 
         if(!meusBiletesReservados.includes(idAlvo)){
             meusBiletesReservados.push(idAlvo);
@@ -914,18 +911,10 @@ function finalizarEExibirCanaisPagamento() {
         }
         
         cartelaSelecionada = null; 
-        ultimoIdReservado = idAlvo;
         atualizarContadorBilhetes();
-        atualizarListenerSaldo();
         
         document.getElementById('blocoAcoesIniciaisCompra').style.display = 'none';
         document.getElementById('blocoCanaisPagamento').style.display = 'flex';
-        atualizarBotaoPagarComCredito();
-        
-        let mensagemWhats = encodeURIComponent(`Olá! Fiz a reserva do bilhete #${idAlvo} no nome de ${nome}. Gostaria de confirmar o pagamento em dinheiro ou enviar o comprovante.`);
-        document.getElementById('btnWhatsappLink').onclick = function() {
-            window.open(`https://wa.me/5592993154399?text=${mensagemWhats}`, '_blank');
-        };
 
         renderizarMultiplasCartelasCliente();
     });

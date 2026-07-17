@@ -37,6 +37,8 @@
         .info-header-box { display: flex; justify-content: space-between; width: 100%; max-width: 600px; margin-bottom: 12px; background: #fff; padding: 10px 15px; border-radius: 10px; border: 1px solid #e2e8f0; font-weight: bold; font-size: 14px; }
         .alerta-vencedor { background: #fef2f2; border: 2px dashed #ef4444; color: #991b1b; padding: 15px; border-radius: 8px; text-align: center; font-weight: bold; margin-bottom: 15px; display: none; }
 
+        .aviso-divisao-premio { background: #fef9c3; border: 1px solid #eab308; color: #854d0e; padding: 8px 12px; border-radius: 6px; font-size: 13px; margin-bottom: 8px; display: none; text-align: center; }
+
         /* ===== BILHETE DO VENCEDOR (grade 3x5, 15 números) ===== */
         .wrapper-bilhetes-vencedores { display: flex; flex-direction: column; gap: 14px; margin-top: 10px; }
         .bilhete-vencedor { background: #fff; border: 3px solid #f59e0b; border-radius: 10px; padding: 16px; text-align: left; }
@@ -125,6 +127,7 @@ var db = firebase.database();
 <!-- ALERTA DE GANHADOR(ES) EM TEMPO REAL -->
 <div class="card alerta-vencedor" id="boxVencedorAdmin">
     <div id="txtTituloVencedorAdmin">🚨 🔥 BINGO! TEMOS UM GANHADOR COROADO! 🔥 🚨</div>
+    <div id="avisoDivisaoPremioAdmin" class="aviso-divisao-premio"></div>
     <div id="wrapperBilhetesParaImprimir" class="wrapper-bilhetes-vencedores"></div>
     <button class="btn-print-bilhetes" onclick="window.print()">🖨️ Imprimir Bilhete(s)</button>
 </div>
@@ -245,6 +248,16 @@ function falarTexto(texto) {
     }
 }
 
+// Extrai um número de um texto de prêmio, ex: "R$ 1.200,00" -> 1200, "iPhone 15" -> null
+function extrairValorNumerico(texto) {
+    if (!texto) return null;
+    let limpo = texto.toString().replace(/[^\d,.-]/g, '');
+    limpo = limpo.replace(/\.(?=\d{3}(,|$))/g, ''); // remove pontos de milhar
+    limpo = limpo.replace(',', '.');
+    let n = parseFloat(limpo);
+    return isNaN(n) ? null : n;
+}
+
 // ===== ANIMAÇÃO DO BONECO: clique manual (efeito "pulo") =====
 function animarBonecoAdminClique() {
     let el = document.getElementById('bonecoMascoteAdmin');
@@ -308,6 +321,7 @@ db.ref('jogo/vencedores').on('value', snap => {
     let box = document.getElementById('boxVencedorAdmin');
     let boneco = document.getElementById('bonecoMascoteAdmin');
     let titulo = document.getElementById('txtTituloVencedorAdmin');
+    let avisoDivisao = document.getElementById('avisoDivisaoPremioAdmin');
 
     if(vencedores.length > 0) {
         possuiVencedorAtivo = true;
@@ -316,11 +330,25 @@ db.ref('jogo/vencedores').on('value', snap => {
             ? `🚨 🔥 BINGO! TEMOS ${vencedores.length} GANHADORES EMPATADOS! 🔥 🚨`
             : `🚨 🔥 BINGO! TEMOS UM GANHADOR COROADO! 🔥 🚨`;
 
+        if (vencedores.length > 1) {
+            let premioTexto = document.getElementById('topGlobalPremio').innerText || '';
+            let valorNumerico = extrairValorNumerico(premioTexto);
+            if (valorNumerico !== null) {
+                let parte = valorNumerico / vencedores.length;
+                avisoDivisao.innerText = `💰 Regra: o prêmio será dividido igualmente entre os ${vencedores.length} ganhadores: R$ ${parte.toFixed(2).replace('.', ',')} para cada um.`;
+            } else {
+                avisoDivisao.innerText = `💰 Regra: o prêmio será dividido entre os ${vencedores.length} ganhadores.`;
+            }
+            avisoDivisao.style.display = 'block';
+        } else {
+            avisoDivisao.style.display = 'none';
+        }
+
         renderizarBilhetesVencedores(vencedores);
 
         if(vencedores.length > 1) {
             let nomes = vencedores.map(v => v.nome).join(', ');
-            falarTexto(`Atenção! Deu empate! Temos ${vencedores.length} ganhadores nesta rodada: ${nomes}!`);
+            falarTexto(`Atenção! Deu empate! Temos ${vencedores.length} ganhadores nesta rodada: ${nomes}! O prêmio será dividido entre eles!`);
         } else {
             let v = vencedores[0];
             falarTexto(`Atenção! Temos um ganhador! Parabéns para ${v.nome}, que fechou a cartela número ${v.id}!`);
@@ -330,6 +358,7 @@ db.ref('jogo/vencedores').on('value', snap => {
         possuiVencedorAtivo = false; 
         box.style.display = 'none';
         document.getElementById('wrapperBilhetesParaImprimir').innerHTML = "";
+        avisoDivisao.style.display = 'none';
         if (boneco) boneco.classList.remove('boneco-vencedor');
     }
 });
@@ -482,6 +511,7 @@ function sortearBolaManual() {
         db.ref('jogo/bolas').set(bolasSorteadas);
         
         // Usa filter (não find) para capturar TODOS que baterem bingo na mesma bola, não só o primeiro
+        // REGRA 2: se houver mais de 1 vencedor, o prêmio será dividido (ver aviso e cálculo em renderizarBilhetesVencedores/vencedores listener)
         let vencedoresEncontrados = participantesAtivos.filter(j =>
             j.status === 'paga' && j.numeros.map(num => parseInt(num)).every(num => bolasSorteadas.includes(num))
         );
@@ -628,7 +658,7 @@ function renderizarListaParticipantes() {
                 db.ref('participantes/'+p.id).update({status:'paga'});
                 db.ref('estoque/'+p.id).update({status:'ocupado'});
 
-                // Registro da venda (pagamento em dinheiro confirmado manualmente pelo ADM) para apuração
+                // Registro da venda (caso ainda exista alguma cartela pendente de rodadas anteriores) para apuração
                 db.ref('vendas').push({
                     cartelaId: p.id,
                     nome: p.nome,
@@ -643,16 +673,6 @@ function renderizarListaParticipantes() {
         }
         container.appendChild(div);
     });
-}
-
-// Extrai um número de um texto de prêmio, ex: "R$ 1.200,00" -> 1200, "iPhone 15" -> null
-function extrairValorNumerico(texto) {
-    if (!texto) return null;
-    let limpo = texto.toString().replace(/[^\d,.-]/g, '');
-    limpo = limpo.replace(/\.(?=\d{3}(,|$))/g, ''); // remove pontos de milhar
-    limpo = limpo.replace(',', '.');
-    let n = parseFloat(limpo);
-    return isNaN(n) ? null : n;
 }
 
 function renderizarResumoFinanceiro() {
