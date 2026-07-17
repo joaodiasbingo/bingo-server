@@ -20,8 +20,8 @@
         input[type="text"], input[type="number"] { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; outline: none; }
         input[type="text"]:focus { border-color: #3b82f6; }
         
-        .numeros-sorte-container { display: flex; gap: 10px; justify-content: center; margin: 5px 0; }
-        .input-sorte { width: 60px !important; text-align: center; font-size: 16px; font-weight: bold; }
+        .numeros-sorte-container { display: flex; gap: 14px; justify-content: center; margin: 10px 0; }
+        .input-sorte { width: 70px !important; height: 55px; text-align: center; font-size: 24px !important; font-weight: bold; border: 2px solid #3b82f6 !important; border-radius: 10px !important; background: #eff6ff; box-shadow: 0 2px 5px rgba(59,130,246,0.2); }
         
         button { padding: 12px; font-size: 14px; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; }
         .btn-blue { background-color: #3b82f6; color: white; }
@@ -175,6 +175,10 @@ var db = firebase.database();
     <div class="info-header-box">
         <div style="color: #16a34a;">🏆 Prêmio: <span id="topClientePremio">...</span></div>
         <div style="color: #2563eb;">🎫 Preço: <span id="topClientePreco">R$ 0,00</span></div>
+    </div>
+
+    <div style="width:100%; max-width:600px; background:#fef9c3; border:1px solid #eab308; color:#854d0e; padding:8px 12px; border-radius:8px; font-size:13px; font-weight:600; text-align:center; margin-bottom:15px;">
+        ⚠️ Regra: caso haja mais de 1 vencedor, o prêmio será dividido igualmente entre eles.
     </div>
 
     <div class="card alerta-vencedor" id="boxVencedorCliente">
