@@ -197,6 +197,13 @@ var db = firebase.database();
         <div class="lista-linhas-compacta" id="listaSolicitacoesCredito"></div>
     </section>
 
+    <section class="card" style="background: #fef2f2; border: 1px solid #fecaca;">
+        <h2>💰 Saldos de Créditos dos Clientes</h2>
+        <div class="lista-linhas-compacta" id="listaSaldosClientes">
+            <p style="color: #94a3b8; font-size: 13px; text-align: center;">Nenhum cliente com saldo registrado.</p>
+        </div>
+    </section>
+
     <section class="card">
         <h2>👥 Participantes Registrados (<span id="totalCartelas">0</span>)</h2>
         <div class="lista-linhas-compacta" id="listaCartelasAtivas"></div>
@@ -233,6 +240,7 @@ let bolasSorteadas = [];
 let participantesAtivos = [];
 let eOrganizadorAutenticado = false;
 let solicitacoesCredito = [];
+let todosCreditos = {};
 let possuiVencedorAtivo = false; 
 let ultimoResumoPelaBoa = { faltando1: 0, faltando2: 0 }; 
 
@@ -401,6 +409,11 @@ db.ref('solicitacoesCredito').on('value', snap => {
     if (eOrganizadorAutenticado) renderizarSolicitacoesCredito();
 });
 
+db.ref('creditos').on('value', snap => {
+    todosCreditos = snap.val() || {};
+    if (eOrganizadorAutenticado) renderizarSaldosClientes();
+});
+
 db.ref('vendas').on('value', snap => {
     todasVendas = [];
     snap.forEach(c => { if (c.val()) todasVendas.push(c.val()); });
@@ -417,8 +430,60 @@ function atualizarTelas() {
         renderizarListaParticipantes();
         renderizarSolicitacoesCredito();
         renderizarResumoFinanceiro();
+        renderizarSaldosClientes();
         calcularPelaBoa();
     }
+}
+
+// Tenta identificar o nome do cliente dono de um telefone, cruzando com participantes e solicitações de crédito
+function nomeParaTelefoneCliente(telNormalizado) {
+    let doParticipante = participantesAtivos.find(p => (p.telefone || '').replace(/\D/g, '') === telNormalizado);
+    if (doParticipante) return doParticipante.nome;
+    let daSolicitacao = solicitacoesCredito.find(s => (s.telefone || '').replace(/\D/g, '') === telNormalizado);
+    if (daSolicitacao) return daSolicitacao.nome;
+    let daVenda = todasVendas.find(v => (v.telefone || '').replace(/\D/g, '') === telNormalizado);
+    if (daVenda) return daVenda.nome;
+    return null;
+}
+
+function renderizarSaldosClientes() {
+    let container = document.getElementById('listaSaldosClientes');
+    if (!container) return;
+    container.innerHTML = "";
+
+    let telefones = Object.keys(todosCreditos);
+
+    if (telefones.length === 0) {
+        container.innerHTML = `<p style="color:#94a3b8; font-size:13px; text-align:center;">Nenhum cliente com saldo registrado.</p>`;
+        return;
+    }
+
+    telefones.sort((a, b) => (parseFloat(todosCreditos[b]) || 0) - (parseFloat(todosCreditos[a]) || 0));
+
+    telefones.forEach(tel => {
+        let saldo = parseFloat(todosCreditos[tel]) || 0;
+        let nome = nomeParaTelefoneCliente(tel) || '(nome não identificado)';
+
+        let div = document.createElement('div');
+        div.className = "item-lista-admin";
+        div.innerHTML = `<div><strong>${nome}</strong><br><small>📞 ${tel} — Saldo: R$ ${saldo.toFixed(2).replace('.', ',')}</small></div>`;
+
+        let b = document.createElement('button');
+        b.innerText = "Zerar Saldo (após devolução)";
+        b.style.cssText = "background:#ef4444; color:white; padding:6px 10px; font-size:12px; width:auto;";
+        b.onclick = () => zerarSaldoCliente(tel, nome, saldo);
+        div.appendChild(b);
+
+        container.appendChild(div);
+    });
+}
+
+function zerarSaldoCliente(tel, nome, saldoAtual) {
+    let confirmar = confirm(`Confirma que você já devolveu R$ ${saldoAtual.toFixed(2).replace('.', ',')} para ${nome} (📞 ${tel}) por fora do sistema (dinheiro ou Pix manual)?\n\nEsta ação vai ZERAR o saldo dele no sistema e NÃO pode ser desfeita.`);
+    if (!confirmar) return;
+    db.ref('creditos/' + tel).set(0).then(() => {
+        alert(`✅ Saldo de ${nome} foi zerado com sucesso.`);
+    });
 }
 
 function calcularPelaBoa() {
