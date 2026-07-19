@@ -405,7 +405,13 @@ db.ref('participantes').on('value', snap => {
 
 db.ref('solicitacoesCredito').on('value', snap => {
     solicitacoesCredito = [];
-    snap.forEach(c => { if(c.val()) solicitacoesCredito.push(c.val()); });
+    snap.forEach(c => {
+        let v = c.val();
+        if (v) {
+            v._chaveFirebase = c.key; // chave real do banco, sempre confiável (mesmo se o campo "id" interno estiver ausente/corrompido)
+            solicitacoesCredito.push(v);
+        }
+    });
     if (eOrganizadorAutenticado) renderizarSolicitacoesCredito();
 });
 
@@ -672,12 +678,16 @@ function renderizarSolicitacoesCredito() {
         let div = document.createElement('div');
         div.className = "item-lista-admin";
         let statusTexto = s.status === 'aguardando_pagamento' ? '⏳ aguardando Pix' : '📋 manual';
-        div.innerHTML = `<div><strong>${s.nome}</strong><br><small>📞 ${s.telefone} — R$ ${parseFloat(s.valor).toFixed(2).replace('.', ',')} (${statusTexto})</small></div>`;
+        let nomeSeguro = s.nome || '(sem nome)';
+        let telSeguro = s.telefone || '(sem telefone)';
+        let valorNumerico = parseFloat(s.valor);
+        let valorSeguro = isNaN(valorNumerico) ? '(valor inválido)' : ("R$ " + valorNumerico.toFixed(2).replace('.', ','));
+        div.innerHTML = `<div><strong>${nomeSeguro}</strong><br><small>📞 ${telSeguro} — ${valorSeguro} (${statusTexto})</small></div>`;
 
         let wrapperBotoes = document.createElement('div');
         wrapperBotoes.style.cssText = "display:flex; gap:6px;";
 
-        if (s.status === 'pendente') {
+        if (s.status === 'pendente' && !isNaN(valorNumerico)) {
             let bConfirmar = document.createElement('button');
             bConfirmar.innerText = "Confirmar Crédito";
             bConfirmar.style.cssText = "background:#10b981; color:white; padding:6px 10px; font-size:12px; width:auto;";
@@ -697,20 +707,25 @@ function renderizarSolicitacoesCredito() {
 }
 
 function recusarSolicitacaoCredito(s) {
-    if (!confirm(`Cancelar a solicitação de R$ ${parseFloat(s.valor).toFixed(2).replace('.', ',')} de ${s.nome}? O cliente não receberá o crédito.`)) return;
-    db.ref('solicitacoesCredito/' + s.id).remove();
+    let chave = s._chaveFirebase || s.id;
+    if (!chave) return alert("Não foi possível identificar esta solicitação para exclusão.");
+    let valorTexto = isNaN(parseFloat(s.valor)) ? '(valor inválido)' : ("R$ " + parseFloat(s.valor).toFixed(2).replace('.', ','));
+    if (!confirm(`Cancelar a solicitação de ${valorTexto} de ${s.nome || '(sem nome)'}? O cliente não receberá o crédito.`)) return;
+    db.ref('solicitacoesCredito/' + chave).remove();
 }
 
 function confirmarSolicitacaoCredito(s) {
+    let chave = s._chaveFirebase || s.id;
     let tel = (s.telefone || '').replace(/\D/g, '');
     if (!tel) return alert("Telefone inválido nesta solicitação.");
+    if (!chave) return alert("Não foi possível identificar esta solicitação.");
 
     db.ref('creditos/' + tel).once('value').then(snap => {
         let saldoAtual = parseFloat(snap.val()) || 0;
         let novoSaldo = saldoAtual + parseFloat(s.valor);
 
         db.ref('creditos/' + tel).set(novoSaldo);
-        db.ref('solicitacoesCredito/' + s.id).update({ status: 'aprovado' });
+        db.ref('solicitacoesCredito/' + chave).update({ status: 'aprovado' });
 
         alert(`✅ Crédito de R$ ${parseFloat(s.valor).toFixed(2).replace('.', ',')} liberado para ${s.nome}. Novo saldo: R$ ${novoSaldo.toFixed(2).replace('.', ',')}`);
     });
