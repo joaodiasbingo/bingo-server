@@ -3,59 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JD Show de Prêmios - Área do Cliente</title>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-    
+    <title>JD Diversões Online</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
-        body { background-color: #f0f4f8; color: #1e293b; padding: 20px; display: flex; flex-direction: column; align-items: center; }
-        
-        .card { background: white; border-radius: 12px; padding: 22px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 15px; width: 100%; max-width: 600px; margin-bottom: 20px; }
-        .card h2 { font-size: 18px; color: #0f172a; border-bottom: 2px solid #f1f5f9; padding-bottom: 8px; display: flex; align-items: center; gap: 8px; }
-        
-        .form-group { display: flex; flex-direction: column; gap: 6px; width: 100%; }
-        .form-group label { font-size: 13px; font-weight: 600; color: #475569; }
-        
-        input[type="text"], input[type="number"] { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; outline: none; }
-        input[type="text"]:focus { border-color: #3b82f6; }
-        
-        .numeros-sorte-container { display: flex; gap: 14px; justify-content: center; margin: 10px 0; }
-        .input-sorte { width: 70px !important; height: 55px; text-align: center; font-size: 24px !important; font-weight: bold; border: 2px solid #3b82f6 !important; border-radius: 10px !important; background: #eff6ff; box-shadow: 0 2px 5px rgba(59,130,246,0.2); }
-        
-        button { padding: 12px; font-size: 14px; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; }
-        .btn-blue { background-color: #3b82f6; color: white; }
-        .btn-blue:hover { background-color: #2563eb; }
-        .btn-green { background-color: #10b981; color: white; font-size: 16px; }
-        .btn-green:hover { background-color: #059669; }
-        .btn-purple { background-color: #8b5cf6; color: white; }
-        .btn-purple:hover { background-color: #7c3aed; }
-        
-        .btn-live-blue { 
-            background-color: #2563eb; 
-            color: white; 
-            font-size: 15px; 
-            text-decoration: none; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            border-radius: 8px; 
-            padding: 12px; 
-            font-weight: bold; 
-            width: 100%;
-            margin-bottom: 15px;
-            box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.7);
-            animation: pulse-blue 1.8s infinite cubic-bezier(0.66, 0, 0, 1);
-        }
-        @keyframes pulse-blue {
-            to { box-shadow: 0 0 0 12px rgba(37, 99, 235, 0); }
+        body {
+            min-height: 100vh;
+            background: linear-gradient(160deg, #0f172a 0%, #1e293b 55%, #0f172a 100%);
+            color: #f1f5f9;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 30px 20px;
         }
 
-        /* ===== ANIMAÇÃO DO BONECO (MASCOTE) ===== */
+        .logo-wrap { text-align: center; margin-bottom: 10px; }
+        .logo-wrap h1 {
+            font-family: 'Arial Black', sans-serif;
+            font-size: 4.5rem;
+            color: #FFD700;
+            line-height: 0.85;
+            text-shadow: 2px 2px 6px rgba(0,0,0,0.4);
+        }
+        .logo-wrap h2 {
+            font-size: 1.1rem;
+            color: #e2e8f0;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 4px;
+        }
+
         .boneco-mascote {
             cursor: pointer;
             transform-origin: center bottom;
-            filter: drop-shadow(0 6px 10px rgba(0,0,0,0.18));
+            filter: drop-shadow(0 6px 10px rgba(0,0,0,0.35));
             animation: bonecoEntrada 0.8s ease-out, bonecoFloat 3.2s ease-in-out infinite 0.8s;
         }
         @keyframes bonecoEntrada {
@@ -67,263 +48,118 @@
             0%, 100% { transform: translateY(0) rotate(-2deg); }
             50% { transform: translateY(-10px) rotate(2deg); }
         }
-        .boneco-mascote.boneco-pulo {
-            animation: bonecoPulo 0.6s ease;
-        }
+        .boneco-mascote.boneco-pulo { animation: bonecoPulo 0.6s ease; }
         @keyframes bonecoPulo {
             0% { transform: scale(1) rotate(0deg); }
             30% { transform: scale(1.25) rotate(-12deg) translateY(-14px); }
             60% { transform: scale(0.92) rotate(8deg) translateY(2px); }
             100% { transform: scale(1) rotate(0deg) translateY(0); }
         }
-        .boneco-mascote.boneco-vencedor {
-            animation: bonecoComemoracao 0.9s ease-in-out infinite;
+
+        .slogan {
+            text-align: center;
+            color: #FFD700;
+            font-size: 15px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            margin-top: 6px;
         }
-        @keyframes bonecoComemoracao {
-            0%, 100% { transform: translateY(0) rotate(-6deg) scale(1); }
-            25% { transform: translateY(-18px) rotate(6deg) scale(1.08); }
-            50% { transform: translateY(0) rotate(-6deg) scale(1); }
-            75% { transform: translateY(-18px) rotate(6deg) scale(1.08); }
+
+        .subtitulo {
+            text-align: center;
+            color: #94a3b8;
+            font-size: 15px;
+            max-width: 420px;
+            margin: 18px 0 34px;
+            line-height: 1.5;
         }
 
-        .cartela-layout { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin: 15px 0; justify-content: center; }
-        .num-bola { background-color: #f1f5f9; border: 2px solid #cbd5e1; color: #334155; font-size: 18px; font-weight: bold; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all 0.3s; }
-        
-        .num-bola.marcado { 
-            background: radial-gradient(circle, #39FF14, #04b304); 
-            color: #000000; 
-            border-color: #028002; 
-            transform: scale(1.05); 
-            box-shadow: 0 3px 6px rgba(57, 255, 20, 0.4); 
+        .grid-diversoes {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+            width: 100%;
+            max-width: 680px;
         }
-        
-        .bola-grande { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; width: 70px; height: 70px; font-size: 32px; font-weight: 700; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 10px auto; box-shadow: 0 4px 10px rgba(217,119,6,0.3); }
-        .historico-grid { display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; margin-top: 10px; max-height: 80px; overflow-y: auto; padding: 2px; }
-        
-        .bola-mini { background-color: #39FF14; color: #000000; width: 26px; height: 26px; font-size: 11px; font-weight: bold; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
 
-        .lista-linhas-compacta { max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
-        .item-lista-pela-boa { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-size: 13px; background: #fff7ed; border-radius: 6px; border-left: 4px solid #f97316; }
-        
-        .info-header-box { display: flex; justify-content: space-between; width: 100%; max-width: 600px; margin-bottom: 12px; background: #fff; padding: 12px 15px; border-radius: 10px; border: 1px solid #e2e8f0; font-weight: bold; font-size: 15px; }
-        .alerta-bloqueio { background: #fff3cd; border: 2px dashed #ffc107; color: #856404; padding: 12px; text-align: center; border-radius: 8px; width: 100%; font-weight: bold; font-size: 14px; margin-bottom: 15px; display: none; }
-        .alerta-vencedor { background: #fef2f2; border: 3px dashed #ef4444; color: #991b1b; padding: 15px; border-radius: 8px; text-align: center; font-weight: bold; margin-bottom: 15px; display: none; animation: pulse 1.5s infinite; }
-        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.02); } 100% { transform: scale(1); } }
+        .card-diversao {
+            background: #fff;
+            color: #1e293b;
+            border-radius: 16px;
+            width: 260px;
+            padding: 26px 22px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+            transition: transform 0.2s ease;
+        }
+        .card-diversao:hover { transform: translateY(-4px); }
+        .card-diversao .emoji { font-size: 46px; }
+        .card-diversao h3 { font-size: 19px; text-align: center; }
+        .card-diversao p { font-size: 13px; color: #64748b; text-align: center; min-height: 36px; }
 
-        .aviso-divisao-premio { background: #fef9c3; border: 1px solid #eab308; color: #854d0e; padding: 8px 12px; border-radius: 6px; font-size: 13px; margin-bottom: 8px; display: none; }
+        .btn-entrar {
+            display: block;
+            width: 100%;
+            text-align: center;
+            padding: 12px;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 15px;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+        }
+        .btn-ativo { background-color: #10b981; color: white; }
+        .btn-ativo:hover { background-color: #059669; }
+        .btn-em-breve { background-color: #e2e8f0; color: #94a3b8; cursor: not-allowed; }
 
-        /* ===== BILHETE DO VENCEDOR (grade 3x5, 15 números) ===== */
-        .wrapper-bilhetes-vencedores { display: flex; flex-direction: column; gap: 14px; margin-top: 10px; text-align: left; }
-        .bilhete-vencedor { background: #fff; border: 3px solid #f59e0b; border-radius: 10px; padding: 16px; }
-        .bilhete-vencedor.meu-bilhete { border-color: #16a34a; background: #f0fdf4; }
-        .bilhete-vencedor .bilhete-titulo { font-size: 13px; font-weight: 800; color: #b45309; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 4px; }
-        .bilhete-vencedor.meu-bilhete .bilhete-titulo { color: #15803d; }
-        .bilhete-vencedor .bilhete-nome { font-size: 17px; font-weight: 800; color: #111; }
-        .bilhete-vencedor .bilhete-info { font-size: 13px; color: #475569; margin-bottom: 10px; }
-        .bilhete-grade { display: grid; grid-template-columns: repeat(5, 1fr); grid-template-rows: repeat(3, 1fr); gap: 6px; }
-        .bilhete-grade .bilhete-num { background: radial-gradient(circle, #39FF14, #04b304); color: #000; font-weight: bold; font-size: 16px; height: 42px; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
-        
-        .area-pix { background: #f0fdf4; border: 1px dashed #16a34a; padding: 15px; border-radius: 8px; margin-top: 10px; display: none; flex-direction: column; gap: 10px; text-align: center; }
-        .contador-bilhetes { text-align: center; font-size: 13px; color: #065f46; font-weight: 600; background: #ecfdf5; border-radius: 6px; padding: 6px 12px; margin-bottom: 10px; border: 1px solid #a7f3d0; }
-
-        /* Estilo da aba de cartelas agrupadas */
-        .wrapper-minhas-cartelas { display: flex; flex-direction: column; gap: 20px; width: 100%; }
-        .bloco-cartela-individual { background: #fff; border: 2px solid #e2e8f0; border-radius: 10px; padding: 15px; position: relative; }
-        .bloco-cartela-individual.paga { border-color: #10b981; background: #fcfdfd; }
-        .bloco-cartela-individual.pendente { border-color: #f59e0b; background: #ffffff; }
-        .badge-status { position: absolute; top: 12px; right: 12px; font-size: 11px; font-weight: bold; padding: 3px 8px; border-radius: 12px; text-transform: uppercase; }
-        .badge-status.paga { background: #dcfce7; color: #15803d; }
-        .badge-status.pendente { background: #fef3c7; color: #b45309; }
+        .rodape {
+            margin-top: 40px;
+            font-size: 12px;
+            color: #64748b;
+            text-align: center;
+        }
     </style>
 </head>
-
-<script>
-const firebaseConfig = {
-  apiKey: "AIzaSyCLC7C8mGgoWZUGGARH-D_5KhVAb81a9xY",
-  authDomain: "jd-show-premios-novo.firebaseapp.com",
-  databaseURL: "https://jd-show-premios-novo-default-rtdb.firebaseio.com",
-  projectId: "jd-show-premios-novo",
-  storageBucket: "jd-show-premios-novo.firebasestorage.app",
-  messagingSenderId: "1013416322561",
-  appId: "1:1013416322561:web:a7d072caf168c5d1ad4200"
-};
-
-if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-var db = firebase.database();
-</script>
-
 <body>
 
-<div id="conteudoClienteSite" style="display: flex; flex-direction: column; width: 100%; max-width: 600px; align-items: center;">
-    
-    <div style="display: flex; align-items: center; justify-content: center; gap: 15px; width: 100%; padding: 15px 0;">
-        <img src="boneco.png" alt="Mascote" id="bonecoMascote" class="boneco-mascote" onclick="animarBonecoClique()" style="width: 100px; height: auto;">
-        <div style="text-align: center;">
-            <h1 style="font-family: 'Arial Black', sans-serif; font-size: 4.5rem; color: #FFD700; line-height: 0.8; text-shadow: 2px 2px 4px rgba(0,0,0,0.15);">JD</h1>
-            <h2 style="font-size: 1.1rem; color: #111; text-transform: uppercase;">Show de Prêmios</h2>
+    <div class="logo-wrap">
+        <img src="boneco_abertura.png" alt="Mascote" id="bonecoMascote" class="boneco-mascote" onclick="animarBonecoClique()" style="width: 140px; height: auto;">
+        <h1>JD</h1>
+        <h2>Diversões Online</h2>
+        <p class="slogan">Diversão sem sair de casa</p>
+    </div>
+
+    <p class="subtitulo">Escolha abaixo qual diversão você quer acessar. Mais opções chegando em breve!</p>
+
+    <div class="grid-diversoes">
+        <div class="card-diversao">
+            <div class="emoji">🎱</div>
+            <h3>Bingo Online</h3>
+            <p>Compre sua cartela, acompanhe o sorteio ao vivo e concorra a prêmios.</p>
+            <a href="bingo.html" class="btn-entrar btn-ativo">Entrar</a>
+        </div>
+
+        <div class="card-diversao">
+            <div class="emoji">⚽</div>
+            <h3>Bolão Esportivo</h3>
+            <p>Monte seu bolão e concorra com seus palpites nos jogos.</p>
+            <button class="btn-entrar btn-em-breve" disabled>Em breve</button>
         </div>
     </div>
 
-    <a href="https://t.me/+g65YeHoPl4k1NjRh" target="_blank" class="btn-live-blue">
-        🔵 ASSISTIR SORTEIO AO VIVO (TELEGRAM)
-    </a>
-
-    <div id="telaBloqueioSite" class="alerta-bloqueio">
-        🔒 Novas reservas estão fechadas para este sorteio. Acompanhe as dezenas abaixo!
-    </div>
-
-    <div class="info-header-box">
-        <div style="color: #16a34a;">🏆 Prêmio: <span id="topClientePremio">...</span></div>
-        <div style="color: #2563eb;">🎫 Preço: <span id="topClientePreco">R$ 0,00</span></div>
-    </div>
-
-    <div style="width:100%; max-width:600px; background:#fef9c3; border:1px solid #eab308; color:#854d0e; padding:8px 12px; border-radius:8px; font-size:13px; font-weight:600; text-align:center; margin-bottom:15px;">
-        ⚠️ Regra: caso haja mais de 1 vencedor, o prêmio será dividido igualmente entre eles.
-    </div>
-
-    <div class="card alerta-vencedor" id="boxVencedorCliente">
-        <div id="txtTituloVencedorCliente">🚨 🏆 PARABÉNS AO GRANDE GANHADOR! JOGO ENCERRADO! 🏆 🚨</div>
-        <div id="avisoDivisaoPremioCliente" class="aviso-divisao-premio"></div>
-        <div id="wrapperBilhetesVencedoresCliente" class="wrapper-bilhetes-vencedores"></div>
-    </div>
-
-    <section class="card" style="background: linear-gradient(to bottom, #ffffff, #f8fafc);">
-        <h2>🔮 Globo da Sorte (Sincronizado)</h2>
-        <div style="text-align: center;">
-            <span style="font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase;">Última Bola</span>
-            <div class="bola-grande" id="bolaCliente">-</div>
-        </div>
-        <div class="historico-grid" id="historicoCliente"></div>
-    </section>
-
-    <!-- SEÇÃO DE CRÉDITOS -->
-    <section class="card" id="secaoCreditosCliente" style="background: #eff6ff; border: 1px solid #bfdbfe;">
-        <h2>💳 Meus Créditos</h2>
-        <div class="contador-bilhetes" style="background: #dbeafe; border-color: #93c5fd; color: #1e3a8a;">
-            Saldo atual: <span id="txtSaldoCreditos">R$ 0,00</span>
-        </div>
-        <p style="font-size: 12px; color: #1e3a8a; text-align: center; font-weight: 600;">⚠️ As cartelas só podem ser adquiridas usando o saldo de créditos. Compre seus créditos abaixo primeiro.</p>
-        <div class="form-group" id="blocoFormComprarCredito">
-            <label>Adicionar Créditos (R$)</label>
-            <input type="number" id="valorComprarCredito" placeholder="Ex: 50" min="1" step="0.01" inputmode="decimal" onkeydown="if(['e','E','+','-'].includes(event.key)) event.preventDefault();">
-            <div style="display: flex; gap: 8px; margin-top: 4px;">
-                <button class="btn-purple" style="flex: 1;" onclick="solicitarCompraCredito(true)">⚡ Pix Automático</button>
-                <button class="btn-green" style="flex: 1;" onclick="solicitarCompraCredito(false)">💵 Dinheiro / Manual</button>
-            </div>
-        </div>
-        <p style="font-size: 12px; color: #64748b; text-align: center;" id="txtAvisoCredito">Preencha seu nome e telefone abaixo antes de comprar créditos.</p>
-
-        <!-- Área do QR Code Pix gerado automaticamente -->
-        <div id="blocoQrPixCredito" style="display: none; flex-direction: column; align-items: center; gap: 10px; background: #fff; border: 1px dashed #3b82f6; border-radius: 8px; padding: 15px;">
-            <p style="font-size: 13px; font-weight: bold; color: #1e3a8a; text-align: center;">Escaneie o QR Code ou copie o código Pix abaixo:</p>
-            <img id="imgQrPixCredito" src="" alt="QR Code Pix" style="width: 180px; height: 180px;">
-            <input type="text" id="inputCopiaColaCredito" readonly style="text-align: center; background: #f8fafc; font-size: 12px;">
-            <button class="btn-blue" style="padding: 8px; font-size: 12px;" onclick="navigator.clipboard.writeText(document.getElementById('inputCopiaColaCredito').value); alert('Código copiado!');">📋 Copiar Código Pix</button>
-            <p id="txtAguardandoPix" style="font-size: 13px; color: #64748b; text-align: center;">⏳ Aguardando confirmação do pagamento...</p>
-            <button class="btn-red" style="padding: 6px; font-size: 11px; background-color: #f87171;" onclick="cancelarPixCredito()">Cancelar e tentar outro valor</button>
-        </div>
-    </section>
-
-    <!-- FORMULÁRIO DE SELEÇÃO -->
-    <section class="card" id="secaoCompraCartela">
-        <h2>👤 Área do Participante (Adquirir Cartela)</h2>
-        <div class="form-group">
-            <label>Nome Completo do Apostador</label>
-            <input type="text" id="cliNome" placeholder="Ex: João Silva">
-        </div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-            <div class="form-group">
-                <label>Telefone / WhatsApp</label>
-                <input type="text" id="cliTelefone" placeholder="Ex: 92999999999" onblur="atualizarListenerSaldo()">
-            </div>
-            <div class="form-group">
-                <label>Cidade / Bairro</label>
-                <input type="text" id="cliEndereco" placeholder="Ex: Manaus - Centro">
-            </div>
-        </div>
-        
-        <div class="form-group" style="align-items: center; margin-top: 5px;">
-            <label>Escolha 3 Números da Sorte (1 a 75)</label>
-            <div class="numeros-sorte-container">
-                <input type="number" id="sorte1" class="input-sorte" min="1" max="75">
-                <input type="number" id="sorte2" class="input-sorte" min="1" max="75">
-                <input type="number" id="sorte3" class="input-sorte" min="1" max="75">
-            </div>
-        </div>
-        <button class="btn-blue" onclick="executarBuscaInteligenteBolasSorte()">🔍 Buscar Combinação Ideal</button>
-    </section>
-
-    <!-- SEÇÃO DA ABAS / EXIBIÇÃO DE TODAS AS CARTELAS DO CLIENTE -->
-    <section class="card" id="secaoMinhaCartela" style="display: none; border: 2px solid #3b82f6;">
-        <h2>📋 Aba: Minhas Cartelas Compradas</h2>
-        
-        <div class="contador-bilhetes" id="txtContadorBilhetesBox">
-            Você possui <span id="txtContadorBilhetes">0</span> de 4 cartelas permitidas nesta rodada
-        </div>
-
-        <div class="wrapper-minhas-cartelas" id="containerMultiplasCartelas">
-            <!-- As cartelas compradas serão injetadas dinamicamente aqui -->
-        </div>
-
-        <div id="blocoAcoesIniciaisCompra" style="margin-top: 10px; display: none;">
-            <button class="btn-green" onclick="finalizarEExibirCanaisPagamento()">💳 Comprar com Meus Créditos</button>
-        </div>
-
-        <div class="area-pix" id="blocoCanaisPagamento">
-            <p style="font-size: 14px; font-weight: bold; color: #065f46; text-align: center;">✅ Cartela paga com seus créditos e já está liberada!</p>
-            <button class="btn-purple" onclick="iniciarNovaBusca()" id="btnComprarMais" style="margin-top: 5px;">🎫 Comprar Outra Cartela</button>
-        </div>
-    </section>
-
-    <section class="card" style="background: #fff7ed; border: 1px solid #ffedd5;">
-        <h2>⚡ Monitor "Pela Boa" (Top 15 Ao Vivo)</h2>
-        <div class="lista-linhas-compacta" id="listaPelaBoaCliente">
-            <p style="color: #94a3b8; font-size: 13px; text-align: center;">Nenhum bilhete próximo do fechamento no momento...</p>
-        </div>
-    </section>
-</div>
+    <div class="rodape">JD Show de Prêmios &copy; 2026</div>
 
 <script>
-let bolasSorteadas = [];
-let estoqueCompleto = {};
-let cartelaSelecionada = null; 
-let participantesAtivos = [];
-let bloqueioVencedorAtivo = false;
-let meusBiletesReservados = JSON.parse(localStorage.getItem('jdbingo_meusBiletes') || '[]'); 
-let ultimoResumoPelaBoa = { faltando1: 0, faltando2: 0 }; 
-let statusAtualJogo = 'fechado';
-let saldoCreditosAtual = 0;
-let precoCartelaAtual = 0;
-let rodadaAtualId = 1;
-
-const LIMITE_CARTELAS_POR_TELEFONE = 4;
-
-function falarTexto(texto) {
-    if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-        let falar = new SpeechSynthesisUtterance(texto);
-        falar.lang = 'pt-BR';
-        falar.rate = 1.1;
-        window.speechSynthesis.speak(falar);
-    }
-}
-
-// Extrai um número de um texto de prêmio, ex: "R$ 1.200,00" -> 1200, "iPhone 15" -> null
-function extrairValorNumerico(texto) {
-    if (!texto) return null;
-    let limpo = texto.toString().replace(/[^\d,.-]/g, '');
-    limpo = limpo.replace(/\.(?=\d{3}(,|$))/g, '');
-    limpo = limpo.replace(',', '.');
-    let n = parseFloat(limpo);
-    return isNaN(n) ? null : n;
-}
-
-// ===== ANIMAÇÃO DO BONECO: clique manual (efeito "pulo") =====
 function animarBonecoClique() {
     let el = document.getElementById('bonecoMascote');
-    if (!el || el.classList.contains('boneco-vencedor')) return; // não interfere na comemoração de vitória
     el.classList.remove('boneco-pulo');
-    void el.offsetWidth; // força reinício da animação
+    void el.offsetWidth;
     el.classList.add('boneco-pulo');
     el.addEventListener('animationend', function limpar(e) {
         if (e.animationName === 'bonecoPulo') {
@@ -332,603 +168,6 @@ function animarBonecoClique() {
         }
     });
 }
-
-function normalizarTelefone(t) {
-    return (t || '').replace(/\D/g, '');
-}
-
-function contarBiletesPorTelefone(tel) {
-    let alvo = normalizarTelefone(tel);
-    if (!alvo) return 0;
-    return participantesAtivos.filter(p => normalizarTelefone(p.telefone) === alvo).length;
-}
-
-// ===== SISTEMA DE CRÉDITOS =====
-let listenerSaldoAtivo = null;
-
-function atualizarListenerSaldo() {
-    let tel = normalizarTelefone(document.getElementById('cliTelefone').value);
-    if (!tel) return;
-
-    if (listenerSaldoAtivo) {
-        db.ref('creditos/' + listenerSaldoAtivo).off();
-    }
-    listenerSaldoAtivo = tel;
-
-    db.ref('creditos/' + tel).on('value', snap => {
-        saldoCreditosAtual = parseFloat(snap.val()) || 0;
-        let elSaldo = document.getElementById('txtSaldoCreditos');
-        if (elSaldo) elSaldo.innerText = "R$ " + saldoCreditosAtual.toFixed(2).replace('.', ',');
-    });
-}
-
-let listenerSolicitacaoAtiva = null;
-
-// viaPix = true -> tenta gerar Pix automático; viaPix = false -> registra direto como pagamento manual (dinheiro/comprovante)
-function solicitarCompraCredito(viaPix) {
-    let nome = document.getElementById('cliNome').value.trim();
-    let tel = document.getElementById('cliTelefone').value.trim();
-    let valorTexto = document.getElementById('valorComprarCredito').value.trim();
-    let valor = parseFloat(valorTexto);
-
-    let telDigitos = normalizarTelefone(tel);
-
-    if (!nome) return alert("Preencha seu nome antes de comprar créditos!");
-    if (!telDigitos || telDigitos.length < 8) return alert("Informe um telefone válido (com DDD) antes de comprar créditos!");
-    if (valorTexto === '' || !Number.isFinite(valor) || valor <= 0) return alert("Informe um valor numérico válido de crédito (maior que zero)!");
-
-    let novaRef = db.ref('solicitacoesCredito').push();
-    let solicitacaoId = novaRef.key;
-
-    if (!viaPix) {
-        novaRef.set({
-            id: solicitacaoId,
-            nome: nome,
-            telefone: tel,
-            valor: valor,
-            status: 'pendente',
-            formaPagamento: 'manual',
-            criadoEm: Date.now()
-        }).then(() => {
-            document.getElementById('valorComprarCredito').value = '';
-            alert("✅ Solicitação registrada! Envie o comprovante ou combine o pagamento em dinheiro pelo WhatsApp. O crédito será liberado assim que o ADM confirmar.");
-            let msg = encodeURIComponent(`Olá! Quero adicionar R$ ${valor.toFixed(2).replace('.', ',')} de crédito na minha conta (${nome}), pagamento em dinheiro/comprovante manual.`);
-            window.open(`https://wa.me/5592993154399?text=${msg}`, '_blank');
-        });
-        return;
-    }
-
-    novaRef.set({
-        id: solicitacaoId,
-        nome: nome,
-        telefone: tel,
-        valor: valor,
-        status: 'aguardando_pagamento',
-        formaPagamento: 'pix',
-        criadoEm: Date.now()
-    }).then(() => {
-        document.getElementById('blocoFormComprarCredito').style.display = 'none';
-        document.getElementById('txtAguardandoPix').innerText = "⏳ Gerando seu Pix, aguarde (pode levar até 1 minuto se o servidor estiver 'acordando')...";
-        document.getElementById('blocoQrPixCredito').style.display = 'flex';
-
-        fetch('https://jd-bingo-server.onrender.com/criar-pix', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ valor, nome, telefone: tel, solicitacaoId })
-        })
-        .then(r => r.json())
-        .then(dados => {
-            if (dados.erro) {
-                mostrarFalhaPixUsarManual(nome, tel, valor, solicitacaoId, dados.erro);
-                return;
-            }
-            document.getElementById('imgQrPixCredito').src = "data:image/png;base64," + dados.qr_code_base64;
-            document.getElementById('inputCopiaColaCredito').value = dados.qr_code;
-            document.getElementById('txtAguardandoPix').innerText = "⏳ Aguardando confirmação do pagamento...";
-            escutarConfirmacaoCredito(solicitacaoId);
-        })
-        .catch(() => {
-            mostrarFalhaPixUsarManual(nome, tel, valor, solicitacaoId, "Falha de conexão com o servidor de pagamento");
-        });
-    });
-}
-
-function mostrarFalhaPixUsarManual(nome, tel, valor, solicitacaoId, motivo) {
-    console.error("Pix automático indisponível:", motivo);
-    db.ref('solicitacoesCredito/' + solicitacaoId).update({ status: 'pendente', formaPagamento: 'manual' });
-    document.getElementById('blocoQrPixCredito').style.display = 'none';
-    document.getElementById('blocoFormComprarCredito').style.display = 'flex';
-    alert("⚠️ Não foi possível gerar o Pix automático agora. Vamos te direcionar para o pagamento manual via WhatsApp.");
-
-    let msg = encodeURIComponent(`Olá! Quero adicionar R$ ${valor.toFixed(2).replace('.', ',')} de crédito na minha conta (${nome}). O Pix automático estava indisponível, vou enviar o comprovante manualmente.`);
-    window.open(`https://wa.me/5592993154399?text=${msg}`, '_blank');
-}
-
-function escutarConfirmacaoCredito(solicitacaoId) {
-    if (listenerSolicitacaoAtiva) {
-        db.ref('solicitacoesCredito/' + listenerSolicitacaoAtiva).off();
-    }
-    listenerSolicitacaoAtiva = solicitacaoId;
-
-    db.ref('solicitacoesCredito/' + solicitacaoId).on('value', snap => {
-        let s = snap.val();
-        if (s && s.status === 'aprovado') {
-            db.ref('solicitacoesCredito/' + solicitacaoId).off();
-            listenerSolicitacaoAtiva = null;
-            document.getElementById('blocoQrPixCredito').style.display = 'none';
-            document.getElementById('blocoFormComprarCredito').style.display = 'flex';
-            document.getElementById('valorComprarCredito').value = '';
-            alert("✅ Pagamento confirmado! Seu crédito já está disponível.");
-        }
-    });
-}
-
-function cancelarPixCredito() {
-    if (listenerSolicitacaoAtiva) {
-        db.ref('solicitacoesCredito/' + listenerSolicitacaoAtiva).off();
-        listenerSolicitacaoAtiva = null;
-    }
-    document.getElementById('blocoQrPixCredito').style.display = 'none';
-    document.getElementById('blocoFormComprarCredito').style.display = 'flex';
-}
-
-function atualizarContadorBilhetes() {
-    let el = document.getElementById('txtContadorBilhetes');
-    if (el) el.innerText = meusBiletesReservados.length;
-    
-    let btnMais = document.getElementById('btnComprarMais');
-    if(btnMais) {
-        if(meusBiletesReservados.length >= LIMITE_CARTELAS_POR_TELEFONE) {
-            btnMais.style.display = 'none';
-        } else {
-            btnMais.style.display = 'flex';
-        }
-    }
-}
-
-db.ref('jogo/rodadaAtual').on('value', snap => {
-    rodadaAtualId = snap.val() || 1;
-});
-
-db.ref('jogo/preco').on('value', snap => {
-    let bruto = (snap.val() || "0").toString().replace(',', '.');
-    precoCartelaAtual = parseFloat(bruto) || 0;
-    document.getElementById('topClientePreco').innerText = "R$ " + (snap.val() || "0,00");
-});
-db.ref('jogo/premio').on('value', snap => { document.getElementById('topClientePremio').innerText = snap.val() || "A Definir"; });
-
-db.ref('jogo/status').on('value', snap => {
-    statusAtualJogo = snap.val() || 'fechado';
-    let secaoCompra = document.getElementById('secaoCompraCartela');
-    let telaBloqueio = document.getElementById('telaBloqueioSite');
-    
-    if(statusAtualJogo === 'aberto') {
-        if(telaBloqueio) telaBloqueio.style.display = 'none';
-        if(secaoCompra && !cartelaSelecionada && meusBiletesReservados.length < LIMITE_CARTELAS_POR_TELEFONE) secaoCompra.style.display = 'flex';
-    } else {
-        if(secaoCompra) secaoCompra.style.display = 'none';
-        if(telaBloqueio) telaBloqueio.style.display = 'block';
-    }
-});
-
-db.ref('jogo/bolas').on('value', snap => {
-    let dados = snap.val();
-    
-    if (!dados) {
-        bolasSorteadas = [];
-        document.getElementById('bolaCliente').innerText = "-";
-        document.getElementById('historicoCliente').innerHTML = "";
-        atualizarTelas();
-        return;
-    }
-
-    if (bloqueioVencedorAtivo) return;
-
-    bolasSorteadas = Object.values(dados).map(b => parseInt(b));
-    document.getElementById('bolaCliente').innerText = bolasSorteadas.length > 0 ? bolasSorteadas[bolasSorteadas.length - 1] : "-";
-    
-    let hist = document.getElementById('historicoCliente');
-    hist.innerHTML = "";
-    bolasSorteadas.forEach(b => {
-        let mini = document.createElement('div');
-        mini.className = 'bola-mini'; mini.innerText = b; hist.appendChild(mini);
-    });
-
-    if(bolasSorteadas.length > 0) {
-        let ultima = bolasSorteadas[bolasSorteadas.length - 1];
-        falarTexto("Bola número " + ultima);
-        animarBonecoClique(); // o boneco reage a cada nova bola sorteada
-    }
-    atualizarTelas();
-});
-
-function montarGradeBilheteCliente(numeros) {
-    let nums = numeros.map(n => parseInt(n));
-    let celulas = nums.map(n => `<div class="bilhete-num">${n}</div>`).join('');
-    return `<div class="bilhete-grade">${celulas}</div>`;
-}
-
-db.ref('jogo/vencedores').on('value', snap => {
-    let dados = snap.val();
-    let vencedores = dados ? Object.values(dados) : [];
-    let box = document.getElementById('boxVencedorCliente');
-    let boneco = document.getElementById('bonecoMascote');
-    let titulo = document.getElementById('txtTituloVencedorCliente');
-    let wrapper = document.getElementById('wrapperBilhetesVencedoresCliente');
-    let avisoDivisao = document.getElementById('avisoDivisaoPremioCliente');
-    
-    if(vencedores.length > 0) {
-        bloqueioVencedorAtivo = true;
-        box.style.display = 'block';
-
-        titulo.innerHTML = vencedores.length > 1
-            ? `🚨 🏆 DEU EMPATE! ${vencedores.length} GANHADORES NESTA RODADA! 🏆 🚨`
-            : `🚨 🏆 PARABÉNS AO GRANDE GANHADOR! JOGO ENCERRADO! 🏆 🚨`;
-
-        if (vencedores.length > 1) {
-            let premioTexto = document.getElementById('topClientePremio').innerText || '';
-            let valorNumerico = extrairValorNumerico(premioTexto);
-            if (valorNumerico !== null) {
-                let parte = valorNumerico / vencedores.length;
-                avisoDivisao.innerText = `💰 O prêmio será dividido igualmente entre os ${vencedores.length} ganhadores: R$ ${parte.toFixed(2).replace('.', ',')} para cada um.`;
-            } else {
-                avisoDivisao.innerText = `💰 O prêmio será dividido entre os ${vencedores.length} ganhadores.`;
-            }
-            avisoDivisao.style.display = 'block';
-        } else {
-            avisoDivisao.style.display = 'none';
-        }
-
-        wrapper.innerHTML = "";
-        vencedores.forEach(v => {
-            let souEuGanhando = meusBiletesReservados.includes(parseInt(v.id));
-            let bloco = document.createElement('div');
-            bloco.className = "bilhete-vencedor" + (souEuGanhando ? " meu-bilhete" : "");
-            bloco.innerHTML = `
-                <span class="bilhete-titulo">${souEuGanhando ? '🎉 Você ganhou! ' : ''}Bilhete Premiado — Cartela #${v.id}</span>
-                <div class="bilhete-nome">${v.nome}</div>
-                <div class="bilhete-info">📞 ${v.telefone || 'N/A'}</div>
-                ${montarGradeBilheteCliente(v.numeros || [])}
-            `;
-            wrapper.appendChild(bloco);
-        });
-
-        if(vencedores.length > 1) {
-            let nomes = vencedores.map(v => v.nome).join(', ');
-            falarTexto(`Atenção! Deu empate! Temos ${vencedores.length} ganhadores nesta rodada: ${nomes}! O prêmio será dividido entre eles!`);
-        } else {
-            let v = vencedores[0];
-            falarTexto("Atenção! Temos um ganhador! Parabéns para " + v.nome + ", que fechou a cartela número " + v.id + "!");
-        }
-        if (boneco) boneco.classList.add('boneco-vencedor');
-    } else {
-        bloqueioVencedorAtivo = false;
-        box.style.display = 'none';
-        wrapper.innerHTML = "";
-        avisoDivisao.style.display = 'none';
-        if (boneco) boneco.classList.remove('boneco-vencedor');
-    }
-});
-
-db.ref('estoque').on('value', snap => { estoqueCompleto = snap.val() || {}; });
-
-db.ref('participantes').on('value', snap => {
-    participantesAtivos = [];
-    let dados = snap.val();
-    
-    if(!dados) {
-        participantesAtivos = [];
-        cartelaSelecionada = null;
-        meusBiletesReservados = [];
-        localStorage.removeItem('jdbingo_meusBiletes');
-        atualizarContadorBilhetes();
-        document.getElementById('secaoMinhaCartela').style.display = 'none';
-        if(document.getElementById('secaoCompraCartela') && statusAtualJogo === 'aberto') document.getElementById('secaoCompraCartela').style.display = 'flex';
-        atualizarTelas();
-        return;
-    }
-
-    snap.forEach(c => { 
-        let obj = c.val();
-        if(obj) participantesAtivos.push(obj);
-    });
-
-    let IDsValidos = participantesAtivos.map(p => parseInt(p.id));
-    meusBiletesReservados = meusBiletesReservados.filter(id => IDsValidos.includes(parseInt(id)));
-    localStorage.setItem('jdbingo_meusBiletes', JSON.stringify(meusBiletesReservados));
-
-    atualizarContadorBilhetes();
-    atualizarTelas();
-});
-
-function atualizarTelas() {
-    renderizarMultiplasCartelasCliente();
-    calcularPelaBoaCliente();
-}
-
-function executarBuscaInteligenteBolasSorte() {
-    if(statusAtualJogo !== 'aberto') {
-        return alert("🔒 O administrador fechou as vendas para este sorteio!");
-    }
-
-    let nome = document.getElementById('cliNome').value.trim();
-    if(!nome) return alert("Por favor, preencha seu nome antes de buscar!");
-
-    let n1 = parseInt(document.getElementById('sorte1').value);
-    let n2 = parseInt(document.getElementById('sorte2').value);
-    let n3 = parseInt(document.getElementById('sorte3').value);
-
-    if(isNaN(n1) || isNaN(n2) || isNaN(n3)) return alert("Preencha as 3 dezenas da sorte para filtrar a melhor combinação!");
-
-    let desejados = [n1, n2, n3];
-    let livres = Object.values(estoqueCompleto).filter(c => c && c.status === 'livre');
-
-    if(livres.length === 0) return alert("Não há mais combinações livres neste estoque!");
-
-    let grupo3 = [], grupo2 = [], grupo1 = [];
-
-    livres.forEach(cartela => {
-        if (!cartela || !cartela.numeros) return;
-        
-        let cNums = [];
-        if (Array.isArray(cartela.numeros)) {
-            cNums = cartela.numeros.slice(0, 15).map(n => parseInt(n));
-        } else if (typeof cartela.numeros === 'string') {
-            cNums = cartela.numeros.split(',').map(n => parseInt(n.trim()));
-        }
-
-        let batidas = cNums.filter(n => desejados.includes(n)).length;
-        
-        if(batidas === 3) grupo3.push(cartela);
-        else if(batidas === 2) grupo2.push(cartela);
-        else if(batidas === 1) grupo1.push(cartela);
-    });
-
-    if(grupo3.length > 0) {
-        cartelaSelecionada = grupo3[Math.floor(Math.random() * grupo3.length)];
-        aplicarCartelaEscolhida();
-    } else if(grupo2.length > 0) {
-        let aceita = confirm("Não encontramos nenhuma combinação com os 3 números exatos nas dezenas livres, mas encontramos opções com 2 deles! Deseja visualizar esta sugestão?");
-        if(aceita) {
-            cartelaSelecionada = grupo2[Math.floor(Math.random() * grupo2.length)];
-            aplicarCartelaEscolhida();
-        }
-    } else if(grupo1.length > 0) {
-        let aceita = confirm("Seus 3 números combinados não estão livres juntos. Deseja aceitar uma cartela contendo 1 de seus números da sorte?");
-        if(aceita) {
-            cartelaSelecionada = grupo1[Math.floor(Math.random() * grupo1.length)];
-            aplicarCartelaEscolhida();
-        }
-    } else {
-        alert("Nenhuma combinação contendo seus números da sorte está livre. Selecionamos uma excelente cartela aleatória com 15 números para você concorrer!");
-        cartelaSelecionada = livres[Math.floor(Math.random() * livres.length)];
-        aplicarCartelaEscolhida();
-    }
-}
-
-function aplicarCartelaEscolhida() {
-    if(!cartelaSelecionada) return;
-    document.getElementById('secaoCompraCartela').style.display = 'none';
-    document.getElementById('secaoMinhaCartela').style.display = 'flex';
-    document.getElementById('blocoAcoesIniciaisCompra').style.display = 'block';
-    document.getElementById('blocoCanaisPagamento').style.display = 'none';
-    renderizarMultiplasCartelasCliente();
-}
-
-function iniciarNovaBusca() {
-    if(statusAtualJogo !== 'aberto') {
-        return alert("🔒 Desculpe, o administrador já fechou as reservas para este sorteio. Não é possível comprar mais cartelas.");
-    }
-
-    let tel = document.getElementById('cliTelefone').value.trim();
-    if(meusBiletesReservados.length >= LIMITE_CARTELAS_POR_TELEFONE) {
-        return alert(`⚠️ Você já atingiu o limite máximo de ${LIMITE_CARTELAS_POR_TELEFONE} cartelas nesta rodada!`);
-    }
-    cartelaSelecionada = null;
-    document.getElementById('sorte1').value = '';
-    document.getElementById('sorte2').value = '';
-    document.getElementById('sorte3').value = '';
-    document.getElementById('secaoMinhaCartela').style.display = meusBiletesReservados.length > 0 ? 'flex' : 'none';
-    document.getElementById('secaoCompraCartela').style.display = 'flex';
-}
-
-function renderizarMultiplasCartelasCliente() {
-    let container = document.getElementById('containerMultiplasCartelas');
-    if(!container) return;
-    container.innerHTML = "";
-
-    let listaExibicao = [];
-
-    if(cartelaSelecionada && cartelaSelecionada.numeros) {
-        let numsProntos = Array.isArray(cartelaSelecionada.numeros) ? cartelaSelecionada.numeros.slice(0, 15) : cartelaSelecionada.numeros.split(',').map(n => n.trim());
-        listaExibicao.push({
-            id: cartelaSelecionada.id,
-            numeros: numsProntos,
-            status: 'analise'
-        });
-    }
-
-    meusBiletesReservados.forEach(idBilete => {
-        let encontrado = participantesAtivos.find(p => parseInt(p.id) === parseInt(idBilete));
-        if(encontrado) {
-            listaExibicao.push(encontrado);
-        }
-    });
-
-    if(listaExibicao.length === 0) {
-        document.getElementById('secaoMinhaCartela').style.display = 'none';
-        return;
-    } else {
-        document.getElementById('secaoMinhaCartela').style.display = 'flex';
-    }
-
-    listaExibicao.forEach(cartela => {
-        if(!cartela || !cartela.numeros) return;
-        let bloco = document.createElement('div');
-        let statusLimpo = cartela.status || 'pendente';
-        bloco.className = `bloco-cartela-individual ${statusLimpo}`;
-
-        let txtStatus = statusLimpo === 'analise' ? 'RESERVANDO' : statusLimpo;
-        let corBadge = statusLimpo === 'paga' ? 'paga' : 'pendente';
-
-        let htmlHeader = `<h3 style="font-size:15px; margin-bottom:5px; color:#1e293b;">🎫 Cartela #${cartela.id}</h3>
-                          <span class="badge-status ${corBadge}">${txtStatus}</span>`;
-        
-        let grid = document.createElement('div');
-        grid.className = "cartela-layout";
-
-        let acertados = 0;
-        let nNums = Array.isArray(cartela.numeros) ? cartela.numeros.map(n => parseInt(n)) : cartela.numeros.split(',').map(n => parseInt(n.trim()));
-
-        nNums.forEach(num => {
-            let bola = document.createElement('div');
-            bola.className = "num-bola";
-            bola.innerText = num;
-            if(bolasSorteadas.includes(num)) {
-                bola.className = "num-bola marcado";
-                acertados++;
-            }
-            grid.appendChild(bola);
-        });
-
-        let faltam = 15 - acertados;
-
-        bloco.innerHTML = htmlHeader;
-        bloco.appendChild(grid);
-
-        let footerInfo = document.createElement('div');
-        footerInfo.style = "text-align: center; font-size: 13px; color: #475569; margin-top:5px;";
-        footerInfo.innerHTML = `Faltam <span style="font-weight: bold; color: #ef4444; font-size: 15px;">${faltam}</span> números para ganhar!`;
-        bloco.appendChild(footerInfo);
-
-        container.appendChild(bloco);
-    });
-}
-
-function calcularPelaBoaCliente() {
-    let container = document.getElementById('listaPelaBoaCliente');
-    if(!container) return;
-    container.innerHTML = "";
-    let ranking = [];
-
-    if(bolasSorteadas.length === 0) {
-        container.innerHTML = `<p style="color:#94a3b8; text-align:center; font-size:13px;">Nenhum bilhete próximo do fechamento no momento...</p>`;
-        ultimoResumoPelaBoa = { faltando1: 0, faltando2: 0 };
-        return;
-    }
-
-    participantesAtivos.forEach(p => {
-        if(p.status === 'paga' && p.numeros) {
-            let nNums = Array.isArray(p.numeros) ? p.numeros.slice(0,15).map(n => parseInt(n)) : p.numeros.split(',').map(n => parseInt(n.trim()));
-            let marcados = nNums.filter(n => bolasSorteadas.includes(n)).length;
-            let faltando = 15 - marcados;
-
-            if(faltando <= 2 && faltando > 0) {
-                ranking.push({ p, faltando });
-            }
-        }
-    });
-
-    ranking.sort((a,b) => a.faltando - b.faltando);
-
-    if(ranking.length === 0) {
-        container.innerHTML = `<p style="color:#94a3b8; text-align:center; font-size:13px;">Nenhum bilhete próximo do fechamento no momento...</p>`;
-        ultimoResumoPelaBoa = { faltando1: 0, faltando2: 0 };
-        return;
-    }
-
-    ranking.slice(0, 15).forEach(item => {
-        let div = document.createElement('div');
-        div.className = "item-lista-pela-boa";
-        if(item.faltando === 1) div.style.background = "#ffedd5";
-        
-        div.innerHTML = `<div><strong>#${item.p.id} - ${item.p.nome}</strong></div>
-                         <div style="font-weight:bold; color:${item.faltando === 1 ? '#ea580c' : '#475569'};">Faltam ${item.faltando}</div>`;
-        container.appendChild(div);
-    });
-
-    let totalFaltando1 = ranking.filter(i => i.faltando === 1).length;
-    let totalFaltando2 = ranking.filter(i => i.faltando === 2).length;
-
-    if(!bloqueioVencedorAtivo && (totalFaltando1 !== ultimoResumoPelaBoa.faltando1 || totalFaltando2 !== ultimoResumoPelaBoa.faltando2)) {
-        let partes = [];
-        if(totalFaltando1 > 0) partes.push(`${totalFaltando1} ${totalFaltando1 === 1 ? 'uma pessoa está' : 'pessoas estão'} faltando apenas 1 número`);
-        if(totalFaltando2 > 0) partes.push(`${totalFaltando2} ${totalFaltando2 === 1 ? 'uma pessoa está' : 'pessoas estão'} faltando 2 números`);
-        if(partes.length > 0) falarTexto("Atenção! " + partes.join(", e "));
-    }
-    ultimoResumoPelaBoa = { faltando1: totalFaltando1, faltando2: totalFaltando2 };
-}
-
-function finalizarEExibirCanaisPagamento() {
-    if(statusAtualJogo !== 'aberto') {
-        return alert("🔒 O administrador já encerrou as vendas deste sorteio. Registro cancelado.");
-    }
-
-    let nome = document.getElementById('cliNome').value.trim();
-    let tel = document.getElementById('cliTelefone').value.trim();
-    let end = document.getElementById('cliEndereco').value.trim();
-
-    if(!nome || !tel) return alert("Preencha nome e telefone para validar o registro!");
-
-    let totalJaReservado = contarBiletesPorTelefone(tel);
-    if(totalJaReservado >= LIMITE_CARTELAS_POR_TELEFONE) {
-        return alert(`⚠️ Este telefone já atingiu o limite máximo de ${LIMITE_CARTELAS_POR_TELEFONE} cartelas nesta rodada!`);
-    }
-
-    let telNormalizado = normalizarTelefone(tel);
-    if (telNormalizado !== listenerSaldoAtivo) {
-        atualizarListenerSaldo();
-    }
-
-    // REGRA 1: cartelas só podem ser adquiridas usando o saldo de créditos
-    if (saldoCreditosAtual < precoCartelaAtual) {
-        return alert(`⚠️ Saldo insuficiente! Esta cartela custa R$ ${precoCartelaAtual.toFixed(2).replace('.', ',')} e seu saldo atual é R$ ${saldoCreditosAtual.toFixed(2).replace('.', ',')}. Adicione créditos na seção "💳 Meus Créditos" no topo da página antes de comprar.`);
-    }
-
-    let idAlvo = cartelaSelecionada.id;
-    let nNumsSalvar = Array.isArray(cartelaSelecionada.numeros) ? cartelaSelecionada.numeros.slice(0, 15) : cartelaSelecionada.numeros.split(',').map(n => parseInt(n.trim()));
-    let novoSaldo = saldoCreditosAtual - precoCartelaAtual;
-
-    db.ref('participantes/' + idAlvo).set({
-        id: idAlvo,
-        idxEstoque: idAlvo,
-        nome: nome,
-        telefone: tel,
-        endereco: end,
-        numeros: nNumsSalvar,
-        status: 'paga',
-        pagoComCredito: true
-    }).then(() => {
-        db.ref('creditos/' + telNormalizado).set(novoSaldo);
-        db.ref('estoque/' + idAlvo).update({ status: 'ocupado' });
-        db.ref('vendas').push({
-            cartelaId: idAlvo,
-            nome: nome,
-            telefone: tel,
-            valor: precoCartelaAtual,
-            formaPagamento: 'credito',
-            timestamp: Date.now(),
-            rodadaId: rodadaAtualId
-        });
-
-        alert("✅ Cartela paga com seus créditos e liberada com sucesso!");
-
-        if(!meusBiletesReservados.includes(idAlvo)){
-            meusBiletesReservados.push(idAlvo);
-            localStorage.setItem('jdbingo_meusBiletes', JSON.stringify(meusBiletesReservados));
-        }
-        
-        cartelaSelecionada = null; 
-        atualizarContadorBilhetes();
-        
-        document.getElementById('blocoAcoesIniciaisCompra').style.display = 'none';
-        document.getElementById('blocoCanaisPagamento').style.display = 'flex';
-
-        renderizarMultiplasCartelasCliente();
-    });
-}
-
-atualizarContadorBilhetes();
 </script>
 </body>
 </html>
