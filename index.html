@@ -17,7 +17,23 @@
             padding: 30px 20px;
         }
 
-        .logo-wrap { text-align: center; margin-bottom: 10px; }
+        .logo-wrap { text-align: center; margin-bottom: 10px; position: relative; }
+        .logo-wrap::before {
+            content: '';
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 220px;
+            height: 220px;
+            background: radial-gradient(circle, rgba(255,215,0,0.22) 0%, rgba(255,215,0,0) 70%);
+            border-radius: 50%;
+            z-index: 0;
+        }
+        .logo-wrap img, .logo-wrap h1, .logo-wrap h2, .logo-wrap .slogan {
+            position: relative;
+            z-index: 1;
+        }
         .logo-wrap h1 {
             font-family: 'Arial Black', sans-serif;
             font-size: 4.5rem;
@@ -78,7 +94,7 @@
         .grid-diversoes {
             display: flex;
             flex-wrap: wrap;
-            gap: 20px;
+            gap: 14px;
             justify-content: center;
             width: 100%;
             max-width: 680px;
@@ -87,29 +103,29 @@
         .card-diversao {
             background: #fff;
             color: #1e293b;
-            border-radius: 16px;
-            width: 260px;
-            padding: 26px 22px;
+            border-radius: 14px;
+            width: 210px;
+            padding: 18px 16px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.25);
             transition: transform 0.2s ease;
         }
         .card-diversao:hover { transform: translateY(-4px); }
-        .card-diversao .emoji { font-size: 46px; }
-        .card-diversao h3 { font-size: 19px; text-align: center; }
-        .card-diversao p { font-size: 13px; color: #64748b; text-align: center; min-height: 36px; }
+        .card-diversao .emoji { font-size: 34px; }
+        .card-diversao h3 { font-size: 16px; text-align: center; }
+        .card-diversao p { font-size: 12px; color: #64748b; text-align: center; min-height: 30px; }
 
         .btn-entrar {
             display: block;
             width: 100%;
             text-align: center;
-            padding: 12px;
-            border-radius: 10px;
+            padding: 9px;
+            border-radius: 8px;
             font-weight: 700;
-            font-size: 15px;
+            font-size: 13px;
             text-decoration: none;
             border: none;
             cursor: pointer;
@@ -131,7 +147,7 @@
     <div class="logo-wrap">
         <img src="boneco_abertura.png" alt="Mascote" id="bonecoMascote" class="boneco-mascote" onclick="animarBonecoClique()" style="width: 140px; height: auto;">
         <h1>JD</h1>
-        <h2>Diversões Online</h2>
+        <h2>Show de Prêmios</h2>
         <p class="slogan">Diversão sem sair de casa</p>
     </div>
 
