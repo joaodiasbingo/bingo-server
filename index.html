@@ -103,29 +103,29 @@
         .card-diversao {
             background: #fff;
             color: #1e293b;
-            border-radius: 14px;
-            width: 210px;
-            padding: 18px 16px;
+            border-radius: 12px;
+            width: 175px;
+            padding: 14px 12px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.25);
             transition: transform 0.2s ease;
         }
         .card-diversao:hover { transform: translateY(-4px); }
-        .card-diversao .emoji { font-size: 34px; }
-        .card-diversao h3 { font-size: 16px; text-align: center; }
-        .card-diversao p { font-size: 12px; color: #64748b; text-align: center; min-height: 30px; }
+        .card-diversao .emoji { font-size: 28px; }
+        .card-diversao h3 { font-size: 14px; text-align: center; }
+        .card-diversao p { font-size: 11px; color: #64748b; text-align: center; min-height: 26px; }
 
         .btn-entrar {
             display: block;
             width: 100%;
             text-align: center;
-            padding: 9px;
-            border-radius: 8px;
+            padding: 7px;
+            border-radius: 7px;
             font-weight: 700;
-            font-size: 13px;
+            font-size: 12px;
             text-decoration: none;
             border: none;
             cursor: pointer;
@@ -133,6 +133,19 @@
         .btn-ativo { background-color: #10b981; color: white; }
         .btn-ativo:hover { background-color: #059669; }
         .btn-em-breve { background-color: #e2e8f0; color: #94a3b8; cursor: not-allowed; }
+
+        .aviso-idade {
+            margin-top: 24px;
+            background: #7f1d1d;
+            color: #fecaca;
+            border: 1px solid #dc2626;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 700;
+            text-align: center;
+            letter-spacing: 0.5px;
+        }
 
         .rodape {
             margin-top: 40px;
@@ -145,7 +158,7 @@
 <body>
 
     <div class="logo-wrap">
-        <img src="boneco_abertura.png" alt="Mascote" id="bonecoMascote" class="boneco-mascote" onclick="animarBonecoClique()" style="width: 140px; height: auto;">
+        <img src="boneco_abertura.png" alt="Mascote" id="bonecoMascote" class="boneco-mascote" onclick="animarBonecoClique()" style="width: 175px; height: auto;">
         <h1>JD</h1>
         <h2>Show de Prêmios</h2>
         <p class="slogan">Diversão sem sair de casa</p>
@@ -168,6 +181,8 @@
             <button class="btn-entrar btn-em-breve" disabled>Em breve</button>
         </div>
     </div>
+
+    <div class="aviso-idade">🔞 PROIBIDO PARA MENORES DE 18 ANOS</div>
 
     <div class="rodape">JD Show de Prêmios &copy; 2026</div>
 
