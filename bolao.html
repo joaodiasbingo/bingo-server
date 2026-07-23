@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JD Bolão Esportivo</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
+        body { background-color: #f0f4f8; color: #1e293b; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .card { background: white; border-radius: 12px; padding: 22px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 15px; width: 100%; max-width: 600px; margin-bottom: 20px; }
+        .card h2 { font-size: 18px; color: #0f172a; border-bottom: 2px solid #f1f5f9; padding-bottom: 8px; }
+        .form-group { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+        .form-group label { font-size: 13px; font-weight: 600; color: #475569; }
+        input[type="text"], input[type="number"] { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; outline: none; }
+        button { padding: 12px; font-size: 14px; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; width: 100%; }
+        .btn-blue { background-color: #3b82f6; color: white; }
+        .btn-green { background-color: #10b981; color: white; font-size: 16px; }
+        .placar-container { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 8px 0; }
+        .placar-time { text-align: center; flex: 1; }
+        .placar-time .nome-time { font-weight: 700; font-size: 15px; margin-bottom: 6px; }
+        .bolinha-time { width: 46px; height: 46px; border-radius: 50%; color: white; font-size: 13px; font-weight: 800; display: flex; align-items: center; justify-content: center; margin: 0 auto 6px; }
+        .input-placar { width: 70px !important; height: 55px; text-align: center; font-size: 24px !important; font-weight: bold; border: 2px solid #3b82f6 !important; border-radius: 10px !important; background: #eff6ff; margin: 0 auto; }
+        .vs { font-weight: 800; color: #94a3b8; font-size: 18px; }
+        .pote-destaque { background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #78350f; border-radius: 12px; padding: 18px; text-align: center; }
+        .pote-destaque .valor { font-size: 32px; font-weight: 800; }
+        .pote-destaque .rotulo { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }
+        .info-jogo { text-align: center; font-size: 14px; color: #475569; }
+        .contador-bilhetes { text-align: center; font-size: 13px; color: #065f46; font-weight: 600; background: #ecfdf5; border-radius: 6px; padding: 6px 12px; border: 1px solid #a7f3d0; }
+        .lista-linhas-compacta { max-height: 220px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+        .item-palpite { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #f8fafc; border-radius: 6px; font-size: 13px; border-left: 4px solid #3b82f6; }
+        .alerta-bloqueio { background: #fff3cd; border: 2px dashed #ffc107; color: #856404; padding: 12px; text-align: center; border-radius: 8px; width: 100%; max-width: 600px; font-weight: bold; font-size: 14px; margin-bottom: 15px; }
+        a.link-voltar { color: #3b82f6; font-size: 13px; text-decoration: none; margin-bottom: 10px; }
+    </style>
+</head>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyCLC7C8mGgoWZUGGARH-D_5KhVAb81a9xY",
+  authDomain: "jd-show-premios-novo.firebaseapp.com",
+  databaseURL: "https://jd-show-premios-novo-default-rtdb.firebaseio.com",
+  projectId: "jd-show-premios-novo",
+  storageBucket: "jd-show-premios-novo.firebasestorage.app",
+  messagingSenderId: "1013416322561",
+  appId: "1:1013416322561:web:a7d072caf168c5d1ad4200"
+};
+if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+var db = firebase.database();
+</script>
+<body>
+
+<a href="index.html" class="link-voltar">← Voltar para Diversões Online</a>
+
+<div style="text-align:center; margin-bottom: 15px;">
+    <h1 style="font-family:'Arial Black',sans-serif; font-size:2.6rem; color:#FFD700; text-shadow:2px 2px 4px rgba(0,0,0,0.15);">JD</h1>
+    <h2 style="font-size:1.1rem; color:#111; text-transform:uppercase;">Bolão Esportivo</h2>
+</div>
+
+<div style="text-align:center; background:#fef3c7; border:1px solid #f59e0b; color:#92400e; padding:6px 14px; border-radius:20px; font-size:13px; font-weight:700; margin-bottom:15px;">
+    🪰 Modo: Acertou na Mosca
+</div>
+
+<div id="telaBloqueioBolao" class="alerta-bloqueio" style="display:none;">
+    🔒 As apostas para este jogo estão fechadas no momento.
+</div>
+
+<div id="conteudoBolao" style="display:none; flex-direction:column; width:100%; max-width:600px; align-items:center;">
+
+    <section class="card">
+        <h2>⚽ Jogo Atual</h2>
+        <div class="info-jogo" id="infoJogo">Carregando jogo...</div>
+        <div class="placar-container">
+            <div class="placar-time"><div class="bolinha-time" id="bolinhaTimeCasa">?</div><div class="nome-time" id="nomeTimeCasa">-</div></div>
+            <div class="vs">X</div>
+            <div class="placar-time"><div class="bolinha-time" id="bolinhaTimeFora">?</div><div class="nome-time" id="nomeTimeFora">-</div></div>
+        </div>
+    </section>
+
+    <div class="pote-destaque">
+        <div class="rotulo">Pote Acumulado do Jogo</div>
+        <div class="valor" id="txtPoteAtual">R$ 0,00</div>
+    </div>
+
+    <section class="card" style="background:#eff6ff; border:1px solid #bfdbfe;">
+        <h2>💳 Meus Créditos</h2>
+        <div class="contador-bilhetes" style="background:#dbeafe; border-color:#93c5fd; color:#1e3a8a;">
+            Saldo atual: <span id="txtSaldoCreditos">R$ 0,00</span>
+        </div>
+        <p style="font-size:12px; color:#64748b; text-align:center;">O saldo de créditos é o mesmo usado no Bingo Online. Para adicionar créditos, acesse a página do Bingo.</p>
+    </section>
+
+    <section class="card">
+        <h2>🎯 Fazer Meu Palpite</h2>
+        <div class="form-group">
+            <label>Nome Completo</label>
+            <input type="text" id="cliNome" placeholder="Ex: João Silva">
+        </div>
+        <div class="form-group">
+            <label>Telefone / WhatsApp</label>
+            <input type="text" id="cliTelefone" placeholder="Ex: 92999999999" onblur="atualizarListenerSaldo()">
+        </div>
+
+        <div class="placar-container">
+            <div class="placar-time">
+                <div class="nome-time" id="nomeTimeCasaForm">Casa</div>
+                <input type="number" id="palpiteCasa" class="input-placar" min="0" max="20" placeholder="0">
+            </div>
+            <div class="vs">X</div>
+            <div class="placar-time">
+                <div class="nome-time" id="nomeTimeForaForm">Fora</div>
+                <input type="number" id="palpiteFora" class="input-placar" min="0" max="20" placeholder="0">
+            </div>
+        </div>
+
+        <button class="btn-green" onclick="comprarPalpite()">🎯 Confirmar Palpite (<span id="txtPrecoPalpite">R$ 0,00</span>)</button>
+        <p style="font-size:12px; color:#64748b; text-align:center;" id="txtLimitePalpites">Você já fez 0 de 4 palpites permitidos neste jogo.</p>
+    </section>
+
+    <section class="card">
+        <h2>📋 Meus Palpites Neste Jogo</h2>
+        <div class="lista-linhas-compacta" id="listaMeusPalpites">
+            <p style="color:#94a3b8; font-size:13px; text-align:center;">Você ainda não fez nenhum palpite neste jogo.</p>
+        </div>
+    </section>
+</div>
+
+<script>
+let jogoAtual = null;
+let saldoCreditosAtual = 0;
+let listenerSaldoAtivo = null;
+let meusPalpites = [];
+
+const LIMITE_PALPITES_POR_TELEFONE = 4;
+
+function iniciaisTime(nome) {
+    if (!nome) return '?';
+    let palavras = nome.replace(/[^\wÀ-ÿ\s]/g, '').split(' ').filter(p => p.length > 0);
+    if (palavras.length === 1) return palavras[0].substring(0, 3).toUpperCase();
+    return palavras.map(p => p[0]).join('').substring(0, 3).toUpperCase();
+}
+
+function corDoTime(nome) {
+    let hash = 0;
+    for (let i = 0; i < (nome || '').length; i++) hash = nome.charCodeAt(i) + ((hash << 5) - hash);
+    let cores = ['#3b82f6','#ef4444','#10b981','#f59e0b','#8b5cf6','#ec4899','#06b6d4','#f97316'];
+    return cores[Math.abs(hash) % cores.length];
+}
+
+function normalizarTelefone(t) { return (t || '').replace(/\D/g, ''); }
+
+function atualizarListenerSaldo() {
+    let tel = normalizarTelefone(document.getElementById('cliTelefone').value);
+    if (!tel) return;
+    if (listenerSaldoAtivo) db.ref('creditos/' + listenerSaldoAtivo).off();
+    listenerSaldoAtivo = tel;
+    db.ref('creditos/' + tel).on('value', snap => {
+        saldoCreditosAtual = parseFloat(snap.val()) || 0;
+        document.getElementById('txtSaldoCreditos').innerText = "R$ " + saldoCreditosAtual.toFixed(2).replace('.', ',');
+    });
+    renderizarMeusPalpites();
+}
+
+db.ref('bolao/jogoAtual').on('value', snap => {
+    jogoAtual = snap.val();
+    let telaBloqueio = document.getElementById('telaBloqueioBolao');
+    let conteudo = document.getElementById('conteudoBolao');
+
+    if (!jogoAtual) {
+        telaBloqueio.style.display = 'block';
+        telaBloqueio.innerText = '⏳ Nenhum jogo cadastrado no momento. Volte em breve!';
+        conteudo.style.display = 'none';
+        return;
+    }
+
+    if (jogoAtual.status !== 'aberto') {
+        telaBloqueio.style.display = 'block';
+        telaBloqueio.innerText = jogoAtual.status === 'encerrado'
+            ? '🏁 O último jogo já foi encerrado. Aguarde o próximo!'
+            : '🔒 As apostas para este jogo estão fechadas no momento.';
+        conteudo.style.display = 'none';
+        return;
+    }
+
+    telaBloqueio.style.display = 'none';
+    conteudo.style.display = 'flex';
+
+    document.getElementById('nomeTimeCasa').innerText = jogoAtual.timeCasa || '-';
+    document.getElementById('nomeTimeFora').innerText = jogoAtual.timeFora || '-';
+    let bolinhaCasa = document.getElementById('bolinhaTimeCasa');
+    let bolinhaFora = document.getElementById('bolinhaTimeFora');
+    bolinhaCasa.innerText = iniciaisTime(jogoAtual.timeCasa);
+    bolinhaCasa.style.background = corDoTime(jogoAtual.timeCasa);
+    bolinhaFora.innerText = iniciaisTime(jogoAtual.timeFora);
+    bolinhaFora.style.background = corDoTime(jogoAtual.timeFora);
+    document.getElementById('nomeTimeCasaForm').innerText = jogoAtual.timeCasa || 'Casa';
+    document.getElementById('nomeTimeForaForm').innerText = jogoAtual.timeFora || 'Fora';
+    document.getElementById('infoJogo').innerText = (jogoAtual.dataHora || '');
+    document.getElementById('txtPrecoPalpite').innerText = "R$ " + (parseFloat(jogoAtual.precoPalpite) || 0).toFixed(2).replace('.', ',');
+
+    renderizarMeusPalpites();
+});
+
+db.ref('bolao/potJogo').on('value', snap => {
+    let pote = parseFloat(snap.val()) || 0;
+    document.getElementById('txtPoteAtual').innerText = "R$ " + pote.toFixed(2).replace('.', ',');
+});
+
+db.ref('bolao/palpites').on('value', snap => {
+    meusPalpites = [];
+    snap.forEach(c => { let v = c.val(); if (v) { v._chave = c.key; meusPalpites.push(v); } });
+    renderizarMeusPalpites();
+});
+
+function renderizarMeusPalpites() {
+    let container = document.getElementById('listaMeusPalpites');
+    let contador = document.getElementById('txtLimitePalpites');
+    if (!container || !jogoAtual) return;
+
+    let telAtual = normalizarTelefone(document.getElementById('cliTelefone').value);
+    let meus = meusPalpites.filter(p => p.jogoId === jogoAtual.id && (!telAtual || normalizarTelefone(p.telefone) === telAtual));
+
+    if (contador) contador.innerText = `Você já fez ${meus.length} de ${LIMITE_PALPITES_POR_TELEFONE} palpites permitidos neste jogo.`;
+
+    container.innerHTML = "";
+    if (meus.length === 0) {
+        container.innerHTML = `<p style="color:#94a3b8; font-size:13px; text-align:center;">Você ainda não fez nenhum palpite neste jogo.</p>`;
+        return;
+    }
+    meus.forEach(p => {
+        let div = document.createElement('div');
+        div.className = "item-palpite";
+        div.innerHTML = `<div><strong>${jogoAtual.timeCasa} ${p.placarCasa} x ${p.placarFora} ${jogoAtual.timeFora}</strong></div>`;
+        container.appendChild(div);
+    });
+}
+
+function comprarPalpite() {
+    if (!jogoAtual || jogoAtual.status !== 'aberto') return alert("🔒 As apostas para este jogo estão fechadas!");
+
+    let nome = document.getElementById('cliNome').value.trim();
+    let tel = document.getElementById('cliTelefone').value.trim();
+    let telNormalizado = normalizarTelefone(tel);
+    let pCasa = parseInt(document.getElementById('palpiteCasa').value);
+    let pFora = parseInt(document.getElementById('palpiteFora').value);
+    let preco = parseFloat(jogoAtual.precoPalpite) || 0;
+
+    if (!nome) return alert("Preencha seu nome!");
+    if (!telNormalizado || telNormalizado.length < 8) return alert("Informe um telefone válido (com DDD)!");
+    if (isNaN(pCasa) || isNaN(pFora) || pCasa < 0 || pFora < 0) return alert("Informe um placar válido para os dois times!");
+
+    let jaFeitos = meusPalpites.filter(p => p.jogoId === jogoAtual.id && normalizarTelefone(p.telefone) === telNormalizado).length;
+    if (jaFeitos >= LIMITE_PALPITES_POR_TELEFONE) return alert(`⚠️ Você já atingiu o limite de ${LIMITE_PALPITES_POR_TELEFONE} palpites neste jogo!`);
+
+    if (telNormalizado !== listenerSaldoAtivo) atualizarListenerSaldo();
+
+    if (saldoCreditosAtual < preco) {
+        return alert(`⚠️ Saldo insuficiente! Este palpite custa R$ ${preco.toFixed(2).replace('.', ',')} e seu saldo é R$ ${saldoCreditosAtual.toFixed(2).replace('.', ',')}. Adicione créditos na página do Bingo antes de apostar.`);
+    }
+
+    let novoSaldo = saldoCreditosAtual - preco;
+    let valorPote = preco * 0.8;
+    let valorFundo = preco * 0.1;
+    let valorOrganizador = preco * 0.1;
+
+    db.ref('creditos/' + telNormalizado).set(novoSaldo);
+    db.ref('bolao/palpites').push({
+        jogoId: jogoAtual.id,
+        nome: nome,
+        telefone: tel,
+        placarCasa: pCasa,
+        placarFora: pFora,
+        valor: preco,
+        timestamp: Date.now()
+    });
+    db.ref('bolao/potJogo').transaction(v => (parseFloat(v) || 0) + valorPote);
+    db.ref('bolao/fundoCampeonato').transaction(v => (parseFloat(v) || 0) + valorFundo);
+    db.ref('bolaoVendas').push({
+        jogoId: jogoAtual.id,
+        nome: nome,
+        telefone: tel,
+        valor: preco,
+        valorOrganizador: valorOrganizador,
+        timestamp: Date.now()
+    });
+
+    alert(`✅ Palpite ${pCasa} x ${pFora} confirmado! Boa sorte!`);
+    document.getElementById('palpiteCasa').value = '';
+    document.getElementById('palpiteFora').value = '';
+}
+</script>
+</body>
+</html>

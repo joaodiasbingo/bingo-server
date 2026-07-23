@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JD Bolão Esportivo - Painel do Organizador</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
+        body { background-color: #f0f4f8; color: #1e293b; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .card { background: white; border-radius: 12px; padding: 22px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 15px; width: 100%; max-width: 600px; margin-bottom: 20px; }
+        .card h2 { font-size: 18px; color: #0f172a; border-bottom: 2px solid #f1f5f9; padding-bottom: 8px; }
+        .form-group { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+        .form-group label { font-size: 13px; font-weight: 600; color: #475569; }
+        input[type="text"], input[type="number"], input[type="password"], select {
+            width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; outline: none; background: white;
+        }
+        .grid-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        button { padding: 12px; font-size: 14px; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; }
+        .btn-blue { background-color: #3b82f6; color: white; }
+        .btn-purple { background-color: #8b5cf6; color: white; }
+        .btn-green { background-color: #10b981; color: white; }
+        .btn-red { background-color: #ef4444; color: white; }
+        .pote-destaque { background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #78350f; border-radius: 12px; padding: 18px; text-align: center; }
+        .pote-destaque .valor { font-size: 28px; font-weight: 800; }
+        .pote-destaque .rotulo { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }
+        .lista-linhas-compacta { max-height: 250px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+        .item-lista-admin { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-bottom: 1px solid #e2e8f0; font-size: 13px; background: #f8fafc; border-radius: 6px; gap: 8px; }
+        .bolinha-time { width: 28px; height: 28px; border-radius: 50%; background: #3b82f6; color: white; font-size: 10px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .info-header-box { display: flex; justify-content: space-between; width: 100%; max-width: 600px; margin-bottom: 12px; background: #fff; padding: 10px 15px; border-radius: 10px; border: 1px solid #e2e8f0; font-weight: bold; font-size: 14px; }
+    </style>
+</head>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyCLC7C8mGgoWZUGGARH-D_5KhVAb81a9xY",
+  authDomain: "jd-show-premios-novo.firebaseapp.com",
+  databaseURL: "https://jd-show-premios-novo-default-rtdb.firebaseio.com",
+  projectId: "jd-show-premios-novo",
+  storageBucket: "jd-show-premios-novo.firebasestorage.app",
+  messagingSenderId: "1013416322561",
+  appId: "1:1013416322561:web:a7d072caf168c5d1ad4200"
+};
+if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+var db = firebase.database();
+</script>
+<body>
+
+<div style="text-align:center; margin-bottom:15px;">
+    <h1 style="font-family:'Arial Black',sans-serif; font-size:2.6rem; color:#FFD700; text-shadow:2px 2px 4px rgba(0,0,0,0.15);">JD</h1>
+    <h2 style="font-size:1.1rem; color:#111; text-transform:uppercase;">Bolão Esportivo — Painel</h2>
+</div>
+<div style="text-align:center; background:#fef3c7; border:1px solid #f59e0b; color:#92400e; padding:6px 14px; border-radius:20px; font-size:13px; font-weight:700; margin-bottom:15px;">
+    🪰 Modo: Acertou na Mosca
+</div>
+
+<section class="card" id="cardLoginAdmin">
+    <h2>🔧 Acesso Restrito</h2>
+    <div class="form-group">
+        <label>Senha do Painel</label>
+        <input type="password" id="senhaAdmin" placeholder="Digite a senha master">
+    </div>
+    <button class="btn-purple" onclick="liberarPainelAdmin()">Entrar no Painel</button>
+</section>
+
+<div id="painelAdminControle" style="display:none; flex-direction:column; width:100%; max-width:600px;">
+
+    <div class="pote-destaque">
+        <div class="rotulo">Pote Acumulado do Jogo Atual</div>
+        <div class="valor" id="txtPoteAtual">R$ 0,00</div>
+    </div>
+    <div class="info-header-box">
+        <div>📦 Fundo do Campeonato: <span id="txtFundoCampeonato">R$ 0,00</span></div>
+    </div>
+
+    <section class="card">
+        <h2>⚽ Jogo Atual</h2>
+        <div id="infoJogoAtualAdmin" style="text-align:center; font-weight:bold; padding:10px; background:#f8fafc; border-radius:8px;">Nenhum jogo cadastrado.</div>
+    </section>
+
+    <section class="card">
+        <h2>🆕 Cadastrar Novo Jogo</h2>
+        <div class="form-group">
+            <label>Campeonato</label>
+            <select id="selCampeonato" onchange="atualizarListasTimes()">
+                <option value="brasileirao">Brasileirão Série A</option>
+                <option value="premier">Premier League</option>
+                <option value="laliga">La Liga</option>
+                <option value="champions">Champions League (digitar manualmente)</option>
+            </select>
+        </div>
+        <div class="grid-inputs">
+            <div class="form-group">
+                <label>Time da Casa</label>
+                <select id="selTimeCasa"></select>
+                <input type="text" id="txtTimeCasaLivre" placeholder="Nome do time da casa" style="display:none;">
+            </div>
+            <div class="form-group">
+                <label>Time Visitante</label>
+                <select id="selTimeFora"></select>
+                <input type="text" id="txtTimeForaLivre" placeholder="Nome do time visitante" style="display:none;">
+            </div>
+        </div>
+        <div class="grid-inputs">
+            <div class="form-group">
+                <label>Data / Hora (texto livre)</label>
+                <input type="text" id="inpDataHora" placeholder="Ex: Domingo 27/07 às 16h">
+            </div>
+            <div class="form-group">
+                <label>Preço do Palpite (R$)</label>
+                <input type="text" id="inpPrecoPalpite" placeholder="Ex: 5,00">
+            </div>
+        </div>
+        <button class="btn-green" onclick="cadastrarNovoJogo()">🆕 Criar Jogo</button>
+    </section>
+
+    <section class="card" style="background:#eff6ff;">
+        <h2>🔓 Status das Apostas</h2>
+        <div class="grid-inputs">
+            <button class="btn-green" onclick="alterarStatusJogo('aberto')">🔓 ABRIR APOSTAS</button>
+            <button class="btn-red" onclick="alterarStatusJogo('fechado')">🔒 FECHAR APOSTAS</button>
+        </div>
+    </section>
+
+    <section class="card">
+        <h2>🏁 Lançar Placar Final</h2>
+        <div class="grid-inputs">
+            <div class="form-group">
+                <label>Placar Casa</label>
+                <input type="number" id="inpPlacarCasaFinal" min="0">
+            </div>
+            <div class="form-group">
+                <label>Placar Fora</label>
+                <input type="number" id="inpPlacarForaFinal" min="0">
+            </div>
+        </div>
+        <button class="btn-purple" onclick="lancarPlacarFinal()">🏁 Confirmar Resultado e Apurar Vencedores</button>
+    </section>
+
+    <section class="card">
+        <h2>🎯 Palpites do Jogo Atual (<span id="totalPalpites">0</span>)</h2>
+        <div class="lista-linhas-compacta" id="listaPalpitesAdmin"></div>
+    </section>
+
+    <section class="card">
+        <h2>📅 Histórico de Jogos</h2>
+        <div class="lista-linhas-compacta" id="listaHistoricoJogos">
+            <p style="color:#94a3b8; font-size:13px; text-align:center;">Nenhum jogo encerrado ainda.</p>
+        </div>
+    </section>
+</div>
+
+<script>
+const TIMES = {
+    brasileirao: ["Atlético-MG","Athletico-PR","Bahia","Botafogo","Bragantino","Chapecoense","Corinthians","Coritiba","Cruzeiro","Flamengo","Fluminense","Grêmio","Internacional","Mirassol","Palmeiras","Remo","Santos","São Paulo","Vasco da Gama","Vitória"],
+    premier: ["Arsenal","Aston Villa","Bournemouth","Brentford","Brighton","Chelsea","Coventry City","Crystal Palace","Everton","Fulham","Hull City","Ipswich Town","Leeds United","Liverpool","Manchester City","Manchester United","Newcastle United","Nottingham Forest","Sunderland","Tottenham Hotspur"],
+    laliga: ["FC Barcelona","Real Madrid","Villarreal","Atlético de Madrid","Real Betis","Celta de Vigo","Real Sociedad","Getafe","Athletic Club","Valencia","Sevilla","Rayo Vallecano","Osasuna","Espanyol","Alavés","Levante","Elche","Racing de Santander","Deportivo de La Coruña","Málaga"]
+};
+
+let eOrganizadorAutenticado = false;
+let jogoAtual = null;
+let palpitesJogoAtual = [];
+let historicoJogos = {};
+
+function liberarPainelAdmin() {
+    if (document.getElementById('senhaAdmin').value === "jd123") {
+        eOrganizadorAutenticado = true;
+        document.getElementById('cardLoginAdmin').style.display = 'none';
+        document.getElementById('painelAdminControle').style.display = 'flex';
+        atualizarListasTimes();
+    } else alert("Senha incorreta!");
+}
+
+function atualizarListasTimes() {
+    let campeonato = document.getElementById('selCampeonato').value;
+    let selCasa = document.getElementById('selTimeCasa');
+    let selFora = document.getElementById('selTimeFora');
+    let livreCasa = document.getElementById('txtTimeCasaLivre');
+    let livreFora = document.getElementById('txtTimeForaLivre');
+
+    if (campeonato === 'champions') {
+        selCasa.style.display = 'none';
+        selFora.style.display = 'none';
+        livreCasa.style.display = 'block';
+        livreFora.style.display = 'block';
+        return;
+    }
+
+    livreCasa.style.display = 'none';
+    livreFora.style.display = 'none';
+    selCasa.style.display = 'block';
+    selFora.style.display = 'block';
+
+    let lista = TIMES[campeonato] || [];
+    selCasa.innerHTML = lista.map(t => `<option value="${t}">${t}</option>`).join('');
+    selFora.innerHTML = lista.map(t => `<option value="${t}">${t}</option>`).join('');
+}
+
+function iniciaisTime(nome) {
+    if (!nome) return '?';
+    let palavras = nome.replace(/[^\wÀ-ÿ\s]/g, '').split(' ').filter(p => p.length > 0);
+    if (palavras.length === 1) return palavras[0].substring(0, 3).toUpperCase();
+    return palavras.map(p => p[0]).join('').substring(0, 3).toUpperCase();
+}
+
+function corDoTime(nome) {
+    let hash = 0;
+    for (let i = 0; i < (nome || '').length; i++) hash = nome.charCodeAt(i) + ((hash << 5) - hash);
+    let cores = ['#3b82f6','#ef4444','#10b981','#f59e0b','#8b5cf6','#ec4899','#06b6d4','#f97316'];
+    return cores[Math.abs(hash) % cores.length];
+}
+
+db.ref('bolao/jogoAtual').on('value', snap => {
+    jogoAtual = snap.val();
+    let info = document.getElementById('infoJogoAtualAdmin');
+    if (!jogoAtual) {
+        info.innerText = "Nenhum jogo cadastrado.";
+        return;
+    }
+    let statusTxt = jogoAtual.status === 'aberto' ? '🔓 Apostas Abertas' : (jogoAtual.status === 'encerrado' ? '🏁 Encerrado' : '🔒 Apostas Fechadas');
+    info.innerHTML = `<strong>${jogoAtual.timeCasa} x ${jogoAtual.timeFora}</strong><br><small>${jogoAtual.dataHora || ''} — Palpite: R$ ${(parseFloat(jogoAtual.precoPalpite)||0).toFixed(2).replace('.', ',')}</small><br>${statusTxt}`;
+});
+
+db.ref('bolao/potJogo').on('value', snap => {
+    document.getElementById('txtPoteAtual').innerText = "R$ " + (parseFloat(snap.val()) || 0).toFixed(2).replace('.', ',');
+});
+
+db.ref('bolao/fundoCampeonato').on('value', snap => {
+    document.getElementById('txtFundoCampeonato').innerText = "R$ " + (parseFloat(snap.val()) || 0).toFixed(2).replace('.', ',');
+});
+
+db.ref('bolao/palpites').on('value', snap => {
+    palpitesJogoAtual = [];
+    snap.forEach(c => { let v = c.val(); if (v) { v._chave = c.key; palpitesJogoAtual.push(v); } });
+    if (eOrganizadorAutenticado) renderizarPalpites();
+});
+
+db.ref('bolao/historicoJogos').on('value', snap => {
+    historicoJogos = snap.val() || {};
+    if (eOrganizadorAutenticado) renderizarHistorico();
+});
+
+function renderizarPalpites() {
+    if (!jogoAtual) return;
+    let doJogo = palpitesJogoAtual.filter(p => p.jogoId === jogoAtual.id);
+    document.getElementById('totalPalpites').innerText = doJogo.length;
+    let container = document.getElementById('listaPalpitesAdmin');
+    container.innerHTML = "";
+    if (doJogo.length === 0) {
+        container.innerHTML = `<p style="color:#94a3b8; font-size:13px; text-align:center;">Nenhum palpite registrado ainda.</p>`;
+        return;
+    }
+    doJogo.forEach(p => {
+        let div = document.createElement('div');
+        div.className = "item-lista-admin";
+        div.innerHTML = `<div><strong>${p.nome}</strong><br><small>📞 ${p.telefone} — Palpite: ${p.placarCasa} x ${p.placarFora}</small></div>`;
+        container.appendChild(div);
+    });
+}
+
+function renderizarHistorico() {
+    let container = document.getElementById('listaHistoricoJogos');
+    container.innerHTML = "";
+    let ids = Object.keys(historicoJogos).sort((a,b) => b - a);
+    if (ids.length === 0) {
+        container.innerHTML = `<p style="color:#94a3b8; font-size:13px; text-align:center;">Nenhum jogo encerrado ainda.</p>`;
+        return;
+    }
+    ids.forEach(id => {
+        let j = historicoJogos[id];
+        let div = document.createElement('div');
+        div.className = "item-lista-admin";
+        div.style.flexDirection = "column";
+        div.style.alignItems = "flex-start";
+        let resultado = j.vencedores && j.vencedores.length > 0
+            ? `🏆 ${j.vencedores.length} vencedor(es) — R$ ${(j.valorPorVencedor||0).toFixed(2).replace('.', ',')} cada`
+            : `🔄 Ninguém acertou — pote acumulou`;
+        div.innerHTML = `<div><strong>${j.timeCasa} ${j.placarCasaFinal} x ${j.placarForaFinal} ${j.timeFora}</strong></div>
+            <div style="font-size:12px; color:#475569;">${resultado}</div>`;
+        container.appendChild(div);
+    });
+}
+
+function cadastrarNovoJogo() {
+    let campeonato = document.getElementById('selCampeonato').value;
+    let timeCasa, timeFora;
+    if (campeonato === 'champions') {
+        timeCasa = document.getElementById('txtTimeCasaLivre').value.trim();
+        timeFora = document.getElementById('txtTimeForaLivre').value.trim();
+    } else {
+        timeCasa = document.getElementById('selTimeCasa').value;
+        timeFora = document.getElementById('selTimeFora').value;
+    }
+    let dataHora = document.getElementById('inpDataHora').value.trim();
+    let preco = parseFloat(document.getElementById('inpPrecoPalpite').value.replace(',', '.'));
+
+    if (!timeCasa || !timeFora) return alert("Selecione ou digite os dois times!");
+    if (timeCasa === timeFora) return alert("Os times não podem ser iguais!");
+    if (!dataHora) return alert("Informe a data/hora do jogo!");
+    if (isNaN(preco) || preco <= 0) return alert("Informe um preço de palpite válido!");
+
+    let novoId = Date.now();
+
+    db.ref('bolao/jogoAtual').set({
+        id: novoId,
+        campeonato: campeonato,
+        timeCasa: timeCasa,
+        timeFora: timeFora,
+        dataHora: dataHora,
+        precoPalpite: preco,
+        status: 'fechado'
+    }).then(() => {
+        db.ref('bolao/palpites').set(null);
+        alert("✅ Jogo cadastrado! Lembre-se de clicar em 'Abrir Apostas' quando quiser liberar.");
+    });
+}
+
+function alterarStatusJogo(status) {
+    if (!jogoAtual) return alert("Cadastre um jogo primeiro!");
+    db.ref('bolao/jogoAtual/status').set(status);
+}
+
+function lancarPlacarFinal() {
+    if (!jogoAtual) return alert("Nenhum jogo cadastrado!");
+    let pCasa = parseInt(document.getElementById('inpPlacarCasaFinal').value);
+    let pFora = parseInt(document.getElementById('inpPlacarForaFinal').value);
+    if (isNaN(pCasa) || isNaN(pFora)) return alert("Informe o placar final dos dois times!");
+
+    if (!confirm(`Confirma o resultado final: ${jogoAtual.timeCasa} ${pCasa} x ${pFora} ${jogoAtual.timeFora}? Essa ação vai apurar os vencedores e não pode ser desfeita.`)) return;
+
+    db.ref('bolao/potJogo').once('value').then(snapPote => {
+        let poteAtual = parseFloat(snapPote.val()) || 0;
+
+        let doJogo = palpitesJogoAtual.filter(p => p.jogoId === jogoAtual.id);
+        let vencedores = doJogo.filter(p => parseInt(p.placarCasa) === pCasa && parseInt(p.placarFora) === pFora);
+
+        let registroHistorico = {
+            id: jogoAtual.id,
+            campeonato: jogoAtual.campeonato,
+            timeCasa: jogoAtual.timeCasa,
+            timeFora: jogoAtual.timeFora,
+            placarCasaFinal: pCasa,
+            placarForaFinal: pFora,
+            encerradoEm: Date.now()
+        };
+
+        if (vencedores.length > 0) {
+            let valorPorVencedor = poteAtual / vencedores.length;
+            registroHistorico.vencedores = vencedores.map(v => ({ nome: v.nome, telefone: v.telefone }));
+            registroHistorico.valorPorVencedor = valorPorVencedor;
+
+            let promessas = vencedores.map(v => {
+                let tel = (v.telefone || '').replace(/\D/g, '');
+                return db.ref('creditos/' + tel).once('value').then(snapSaldo => {
+                    let saldoAtual = parseFloat(snapSaldo.val()) || 0;
+                    return db.ref('creditos/' + tel).set(saldoAtual + valorPorVencedor);
+                });
+            });
+
+            Promise.all(promessas).then(() => {
+                db.ref('bolao/potJogo').set(0);
+                db.ref('bolao/historicoJogos/' + jogoAtual.id).set(registroHistorico);
+                db.ref('bolao/jogoAtual/status').set('encerrado');
+                alert(`🏆 ${vencedores.length} vencedor(es)! R$ ${valorPorVencedor.toFixed(2).replace('.', ',')} creditado(s) para cada um.`);
+            });
+        } else {
+            registroHistorico.vencedores = [];
+            db.ref('bolao/historicoJogos/' + jogoAtual.id).set(registroHistorico);
+            db.ref('bolao/jogoAtual/status').set('encerrado');
+            alert("🔄 Ninguém acertou o placar exato. O pote continua acumulado para o próximo jogo!");
+        }
+    });
+}
+</script>
+</body>
+</html>
