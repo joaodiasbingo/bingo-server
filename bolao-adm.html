@@ -8,7 +8,14 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
-        body { background-color: #f0f4f8; color: #1e293b; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        body {
+            color: #1e293b; padding: 20px; display: flex; flex-direction: column; align-items: center;
+            background-color: #256b29;
+            background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%20800%201200%27%20preserveAspectRatio%3D%27xMidYMid%20slice%27%3E%0A%20%20%3Cdefs%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%27grama%27%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%270%27%20y2%3D%271%27%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%270%25%27%20stop-color%3D%27%232f7a34%27/%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%27100%25%27%20stop-color%3D%27%23256b29%27/%3E%0A%20%20%20%20%3C/linearGradient%3E%0A%20%20%3C/defs%3E%0A%20%20%3Crect%20width%3D%27800%27%20height%3D%271200%27%20fill%3D%27url%28%23grama%29%27/%3E%0A%20%20%3Crect%20x%3D%270%27%20y%3D%270%27%20width%3D%27800%27%20height%3D%27100%27%20fill%3D%27%232a7530%27/%3E%0A%20%20%3Crect%20x%3D%270%27%20y%3D%27100%27%20width%3D%27800%27%20height%3D%27100%27%20fill%3D%27%232f7a34%27/%3E%0A%20%20%3Crect%20x%3D%270%27%20y%3D%27200%27%20width%3D%27800%27%20height%3D%27100%27%20fill%3D%27%232a7530%27/%3E%0A%20%20%3Crect%20x%3D%270%27%20y%3D%27300%27%20width%3D%27800%27%20height%3D%27100%27%20fill%3D%27%232f7a34%27/%3E%0A%20%20%3Crect%20x%3D%270%27%20y%3D%27400%27%20width%3D%27800%27%20height%3D%27100%27%20fill%3D%27%232a7530%27/%3E%0A%20%20%3Crect%20x%3D%270%27%20y%3D%27500%27%20width%3D%27800%27%20height%3D%27100%27%20fill%3D%27%232f7a34%27/%3E%0A%20%20%3Crect%20x%3D%270%27%20y%3D%27600%27%20width%3D%27800%27%20height%3D%27100%27%20fill%3D%27%232a7530%27/%3E%0A%20%20%3Crect%20x%3D%270%27%20y%3D%27700%27%20width%3D%27800%27%20height%3D%27100%27%20fill%3D%27%232f7a34%27/%3E%0A%20%20%3Crect%20x%3D%270%27%20y%3D%27800%27%20width%3D%27800%27%20height%3D%27100%27%20fill%3D%27%232a7530%27/%3E%0A%20%20%3Crect%20x%3D%270%27%20y%3D%27900%27%20width%3D%27800%27%20height%3D%27100%27%20fill%3D%27%232f7a34%27/%3E%0A%20%20%3Crect%20x%3D%270%27%20y%3D%271000%27%20width%3D%27800%27%20height%3D%27100%27%20fill%3D%27%232a7530%27/%3E%0A%20%20%3Crect%20x%3D%270%27%20y%3D%271100%27%20width%3D%27800%27%20height%3D%27100%27%20fill%3D%27%232f7a34%27/%3E%0A%0A%20%20%3Cg%20stroke%3D%27%23f1f5f9%27%20stroke-width%3D%274%27%20fill%3D%27none%27%20opacity%3D%270.85%27%3E%0A%20%20%20%20%3Crect%20x%3D%2730%27%20y%3D%2730%27%20width%3D%27740%27%20height%3D%271140%27/%3E%0A%20%20%20%20%3Cline%20x1%3D%2730%27%20y1%3D%27600%27%20x2%3D%27770%27%20y2%3D%27600%27/%3E%0A%20%20%20%20%3Ccircle%20cx%3D%27400%27%20cy%3D%27600%27%20r%3D%2790%27/%3E%0A%20%20%20%20%3Ccircle%20cx%3D%27400%27%20cy%3D%27600%27%20r%3D%274%27%20fill%3D%27%23f1f5f9%27/%3E%0A%20%20%20%20%3Crect%20x%3D%27230%27%20y%3D%2730%27%20width%3D%27340%27%20height%3D%27150%27/%3E%0A%20%20%20%20%3Crect%20x%3D%27300%27%20y%3D%2730%27%20width%3D%27200%27%20height%3D%2760%27/%3E%0A%20%20%20%20%3Ccircle%20cx%3D%27400%27%20cy%3D%27195%27%20r%3D%274%27%20fill%3D%27%23f1f5f9%27/%3E%0A%20%20%20%20%3Cpath%20d%3D%27M%20300%20180%20A%2090%2090%200%200%200%20500%20180%27%20/%3E%0A%20%20%20%20%3Crect%20x%3D%27230%27%20y%3D%271020%27%20width%3D%27340%27%20height%3D%27150%27/%3E%0A%20%20%20%20%3Crect%20x%3D%27300%27%20y%3D%271110%27%20width%3D%27200%27%20height%3D%2760%27/%3E%0A%20%20%20%20%3Ccircle%20cx%3D%27400%27%20cy%3D%271005%27%20r%3D%274%27%20fill%3D%27%23f1f5f9%27/%3E%0A%20%20%20%20%3Cpath%20d%3D%27M%20300%201020%20A%2090%2090%200%200%201%20500%201020%27%20/%3E%0A%20%20%20%20%3Cpath%20d%3D%27M%2030%2050%20A%2020%2020%200%200%200%2050%2030%27%20/%3E%0A%20%20%20%20%3Cpath%20d%3D%27M%20750%2030%20A%2020%2020%200%200%200%20770%2050%27%20/%3E%0A%20%20%20%20%3Cpath%20d%3D%27M%2030%201150%20A%2020%2020%200%200%201%2050%201170%27%20/%3E%0A%20%20%20%20%3Cpath%20d%3D%27M%20770%201150%20A%2020%2020%200%200%201%20750%201170%27%20/%3E%0A%20%20%3C/g%3E%0A%3C/svg%3E%0A");
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }
         .card { background: white; border-radius: 12px; padding: 22px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 15px; width: 100%; max-width: 600px; margin-bottom: 20px; }
         .card h2 { font-size: 18px; color: #0f172a; border-bottom: 2px solid #f1f5f9; padding-bottom: 8px; }
         .form-group { display: flex; flex-direction: column; gap: 6px; width: 100%; }
@@ -29,6 +36,29 @@
         .item-lista-admin { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-bottom: 1px solid #e2e8f0; font-size: 13px; background: #f8fafc; border-radius: 6px; gap: 8px; }
         .bolinha-time { width: 28px; height: 28px; border-radius: 50%; background: #3b82f6; color: white; font-size: 10px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
         .info-header-box { display: flex; justify-content: space-between; width: 100%; max-width: 600px; margin-bottom: 12px; background: #fff; padding: 10px 15px; border-radius: 10px; border: 1px solid #e2e8f0; font-weight: bold; font-size: 14px; }
+
+        .boneco-mascote {
+            cursor: pointer;
+            transform-origin: center bottom;
+            filter: drop-shadow(0 6px 10px rgba(0,0,0,0.18));
+            animation: bonecoEntrada 0.8s ease-out, bonecoFloat 3.2s ease-in-out infinite 0.8s;
+        }
+        @keyframes bonecoEntrada {
+            0% { opacity: 0; transform: scale(0.4) translateY(50px) rotate(-8deg); }
+            60% { opacity: 1; transform: scale(1.1) translateY(-8px) rotate(3deg); }
+            100% { opacity: 1; transform: scale(1) translateY(0) rotate(0deg); }
+        }
+        @keyframes bonecoFloat {
+            0%, 100% { transform: translateY(0) rotate(-2deg); }
+            50% { transform: translateY(-10px) rotate(2deg); }
+        }
+        .boneco-mascote.boneco-pulo { animation: bonecoPulo 0.6s ease; }
+        @keyframes bonecoPulo {
+            0% { transform: scale(1) rotate(0deg); }
+            30% { transform: scale(1.25) rotate(-12deg) translateY(-14px); }
+            60% { transform: scale(0.92) rotate(8deg) translateY(2px); }
+            100% { transform: scale(1) rotate(0deg) translateY(0); }
+        }
     </style>
 </head>
 <script>
@@ -47,6 +77,7 @@ var db = firebase.database();
 <body>
 
 <div style="text-align:center; margin-bottom:15px;">
+    <img src="boneco_abertura.png" alt="Mascote" id="bonecoMascoteAdmin" class="boneco-mascote" onclick="animarBonecoAdminClique()" style="width: 120px; height: auto;">
     <h1 style="font-family:'Arial Black',sans-serif; font-size:2.6rem; color:#FFD700; text-shadow:2px 2px 4px rgba(0,0,0,0.15);">JD</h1>
     <h2 style="font-size:1.1rem; color:#111; text-transform:uppercase;">Bolão Esportivo — Painel</h2>
 </div>
@@ -158,6 +189,20 @@ const TIMES = {
 };
 
 let eOrganizadorAutenticado = false;
+
+function animarBonecoAdminClique() {
+    let el = document.getElementById('bonecoMascoteAdmin');
+    if (!el) return;
+    el.classList.remove('boneco-pulo');
+    void el.offsetWidth;
+    el.classList.add('boneco-pulo');
+    el.addEventListener('animationend', function limpar(e) {
+        if (e.animationName === 'bonecoPulo') {
+            el.classList.remove('boneco-pulo');
+            el.removeEventListener('animationend', limpar);
+        }
+    });
+}
 let jogoAtual = null;
 let palpitesJogoAtual = [];
 let historicoJogos = {};
