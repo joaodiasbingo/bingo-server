@@ -32,6 +32,14 @@
         .item-palpite { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #f8fafc; border-radius: 6px; font-size: 13px; border-left: 4px solid #3b82f6; }
         .alerta-bloqueio { background: #fff3cd; border: 2px dashed #ffc107; color: #856404; padding: 12px; text-align: center; border-radius: 8px; width: 100%; max-width: 600px; font-weight: bold; font-size: 14px; margin-bottom: 15px; }
         a.link-voltar { color: #3b82f6; font-size: 13px; text-decoration: none; margin-bottom: 10px; }
+
+        .bilhete { background: #fff; border: 2px dashed #1e293b; border-radius: 10px; padding: 18px; margin-top: 6px; }
+        .bilhete .bilhete-topo { text-align: center; border-bottom: 1px dashed #cbd5e1; padding-bottom: 10px; margin-bottom: 10px; }
+        .bilhete .bilhete-casa { font-weight: 800; font-size: 13px; color: #1e293b; letter-spacing: 0.5px; }
+        .bilhete .bilhete-codigo { font-family: monospace; font-size: 15px; font-weight: 800; color: #b45309; margin-top: 4px; }
+        .bilhete .bilhete-linha { display: flex; justify-content: space-between; font-size: 13px; padding: 3px 0; }
+        .bilhete .bilhete-linha strong { color: #0f172a; }
+        .btn-whatsapp { background-color: #25d366; color: white; margin-top: 10px; }
     </style>
 </head>
 <script>
@@ -113,6 +121,21 @@ var db = firebase.database();
         </div>
 
         <button class="btn-green" onclick="comprarPalpite()">🎯 Confirmar Palpite (<span id="txtPrecoPalpite">R$ 0,00</span>)</button>
+
+        <div id="blocoBilhete" class="bilhete" style="display:none;">
+            <div class="bilhete-topo">
+                <div class="bilhete-casa">JD SHOW DE PRÊMIOS — BOLÃO ESPORTIVO</div>
+                <div class="bilhete-codigo" id="txtCodigoBilhete">-</div>
+            </div>
+            <div class="bilhete-linha"><span>Modo:</span><strong>🪰 Acertou na Mosca</strong></div>
+            <div class="bilhete-linha"><span>Jogo:</span><strong id="txtBilheteJogo">-</strong></div>
+            <div class="bilhete-linha"><span>Data/Hora:</span><strong id="txtBilheteDataHora">-</strong></div>
+            <div class="bilhete-linha"><span>Apostador:</span><strong id="txtBilheteNome">-</strong></div>
+            <div class="bilhete-linha"><span>Palpite:</span><strong id="txtBilhetePalpite">-</strong></div>
+            <div class="bilhete-linha"><span>Valor pago:</span><strong id="txtBilheteValor">-</strong></div>
+            <div class="bilhete-linha"><span>Emitido em:</span><strong id="txtBilheteData">-</strong></div>
+            <button class="btn-whatsapp" onclick="salvarBilheteWhatsapp()">📲 Salvar no WhatsApp</button>
+        </div>
         <p style="font-size:12px; color:#64748b; text-align:center;" id="txtLimitePalpites">Você já fez 0 de 4 palpites permitidos neste jogo.</p>
     </section>
 
@@ -283,9 +306,54 @@ function comprarPalpite() {
         timestamp: Date.now()
     });
 
-    alert(`✅ Palpite ${pCasa} x ${pFora} confirmado! Boa sorte!`);
+    db.ref('bolao/contadorBilhetes/' + jogoAtual.id).transaction(v => (parseInt(v) || 0) + 1).then(resultado => {
+        let numeroBilhete = resultado.snapshot.val();
+        let codigo = `JDSP-ANM-J${jogoAtual.numeroJogo || '?'}-${String(numeroBilhete).padStart(4, '0')}`;
+        exibirBilhete({
+            codigo: codigo,
+            timeCasa: jogoAtual.timeCasa,
+            timeFora: jogoAtual.timeFora,
+            dataHora: jogoAtual.dataHora,
+            nome: nome,
+            placarCasa: pCasa,
+            placarFora: pFora,
+            valor: preco
+        });
+    });
+
     document.getElementById('palpiteCasa').value = '';
     document.getElementById('palpiteFora').value = '';
+}
+
+let ultimoBilhete = null;
+
+function exibirBilhete(dados) {
+    ultimoBilhete = dados;
+    document.getElementById('txtCodigoBilhete').innerText = dados.codigo;
+    document.getElementById('txtBilheteJogo').innerText = `${dados.timeCasa} x ${dados.timeFora}`;
+    document.getElementById('txtBilheteDataHora').innerText = dados.dataHora || '-';
+    document.getElementById('txtBilheteNome').innerText = dados.nome;
+    document.getElementById('txtBilhetePalpite').innerText = `${dados.placarCasa} x ${dados.placarFora}`;
+    document.getElementById('txtBilheteValor').innerText = "R$ " + dados.valor.toFixed(2).replace('.', ',');
+    document.getElementById('txtBilheteData').innerText = new Date().toLocaleString('pt-BR');
+    document.getElementById('blocoBilhete').style.display = 'block';
+    document.getElementById('blocoBilhete').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function salvarBilheteWhatsapp() {
+    if (!ultimoBilhete) return;
+    let d = ultimoBilhete;
+    let texto = `🪰 *JD SHOW DE PRÊMIOS — BOLÃO ESPORTIVO*\n` +
+        `Modo: Acertou na Mosca\n` +
+        `Código: *${d.codigo}*\n\n` +
+        `⚽ Jogo: ${d.timeCasa} x ${d.timeFora}\n` +
+        `🗓️ ${d.dataHora || ''}\n` +
+        `👤 Apostador: ${d.nome}\n` +
+        `🎯 Palpite: ${d.placarCasa} x ${d.placarFora}\n` +
+        `💰 Valor pago: R$ ${d.valor.toFixed(2).replace('.', ',')}\n` +
+        `🕒 Emitido em: ${new Date().toLocaleString('pt-BR')}\n\n` +
+        `Guarde este código para consultar seu palpite!`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, '_blank');
 }
 </script>
 </body>

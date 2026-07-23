@@ -218,7 +218,7 @@ db.ref('bolao/jogoAtual').on('value', snap => {
         return;
     }
     let statusTxt = jogoAtual.status === 'aberto' ? '🔓 Apostas Abertas' : (jogoAtual.status === 'encerrado' ? '🏁 Encerrado' : '🔒 Apostas Fechadas');
-    info.innerHTML = `<strong>${jogoAtual.timeCasa} x ${jogoAtual.timeFora}</strong><br><small>${jogoAtual.dataHora || ''} — Palpite: R$ ${(parseFloat(jogoAtual.precoPalpite)||0).toFixed(2).replace('.', ',')}</small><br>${statusTxt}`;
+    info.innerHTML = `<small style="color:#64748b;">Jogo #${jogoAtual.numeroJogo || '-'}</small><br><strong>${jogoAtual.timeCasa} x ${jogoAtual.timeFora}</strong><br><small>${jogoAtual.dataHora || ''} — Palpite: R$ ${(parseFloat(jogoAtual.precoPalpite)||0).toFixed(2).replace('.', ',')}</small><br>${statusTxt}`;
 });
 
 db.ref('bolao/potJogo').on('value', snap => {
@@ -301,17 +301,22 @@ function cadastrarNovoJogo() {
 
     let novoId = Date.now();
 
-    db.ref('bolao/jogoAtual').set({
-        id: novoId,
-        campeonato: campeonato,
-        timeCasa: timeCasa,
-        timeFora: timeFora,
-        dataHora: dataHora,
-        precoPalpite: preco,
-        status: 'fechado'
-    }).then(() => {
-        db.ref('bolao/palpites').set(null);
-        alert("✅ Jogo cadastrado! Lembre-se de clicar em 'Abrir Apostas' quando quiser liberar.");
+    db.ref('bolao/proximoNumeroJogo').transaction(v => (parseInt(v) || 0) + 1).then(resultado => {
+        let numeroJogo = resultado.snapshot.val();
+
+        db.ref('bolao/jogoAtual').set({
+            id: novoId,
+            numeroJogo: numeroJogo,
+            campeonato: campeonato,
+            timeCasa: timeCasa,
+            timeFora: timeFora,
+            dataHora: dataHora,
+                precoPalpite: preco,
+            status: 'fechado'
+        }).then(() => {
+            db.ref('bolao/palpites').set(null);
+            alert("✅ Jogo #" + numeroJogo + " cadastrado! Lembre-se de clicar em 'Abrir Apostas' quando quiser liberar.");
+        });
     });
 }
 
