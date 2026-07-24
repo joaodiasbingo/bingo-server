@@ -144,7 +144,7 @@ var db = firebase.database();
         <div class="contador-bilhetes" style="background:#dbeafe; border-color:#93c5fd; color:#1e3a8a;">
             Saldo atual: <span id="txtSaldoCreditos">R$ 0,00</span>
         </div>
-        <p style="font-size:12px; color:#64748b; text-align:center;">O saldo de créditos é o mesmo usado no Bingo Online. Para adicionar créditos, acesse a página do Bingo.</p>
+        <p style="font-size:12px; color:#64748b; text-align:center;">O saldo de créditos é único, válido tanto para o Bingo quanto para o Bolão. Para adicionar créditos, acesse a <a href="index.html">página de entrada</a>.</p>
     </section>
 
     <section class="card">
@@ -378,7 +378,7 @@ function comprarPalpite() {
     if (telNormalizado !== listenerSaldoAtivo) atualizarListenerSaldo();
 
     if (saldoCreditosAtual < preco) {
-        return alert(`⚠️ Saldo insuficiente! Este palpite custa R$ ${preco.toFixed(2).replace('.', ',')} e seu saldo é R$ ${saldoCreditosAtual.toFixed(2).replace('.', ',')}. Adicione créditos na página do Bingo antes de apostar.`);
+        return alert(`⚠️ Saldo insuficiente! Este palpite custa R$ ${preco.toFixed(2).replace('.', ',')} e seu saldo é R$ ${saldoCreditosAtual.toFixed(2).replace('.', ',')}. Adicione créditos na página de entrada antes de apostar.`);
     }
 
     let novoSaldo = saldoCreditosAtual - preco;

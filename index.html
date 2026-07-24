@@ -153,8 +153,54 @@
             color: #64748b;
             text-align: center;
         }
+
+        .card-creditos {
+            background: #fff;
+            color: #1e293b;
+            border-radius: 14px;
+            width: 100%;
+            max-width: 380px;
+            padding: 20px;
+            margin-top: 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+        }
+        .card-creditos h3 { font-size: 16px; text-align: center; color: #0f172a; }
+        .card-creditos .form-group { display: flex; flex-direction: column; gap: 4px; }
+        .card-creditos label { font-size: 12px; font-weight: 600; color: #475569; }
+        .card-creditos input[type="text"], .card-creditos input[type="number"] {
+            width: 100%; padding: 9px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; outline: none;
+        }
+        .saldo-box {
+            text-align: center; font-size: 13px; color: #065f46; font-weight: 600;
+            background: #ecfdf5; border-radius: 6px; padding: 6px 12px; border: 1px solid #a7f3d0;
+        }
+        .btn-credito { padding: 10px; font-size: 13px; font-weight: 700; border: none; border-radius: 8px; cursor: pointer; color: white; flex: 1; }
+        .btn-pix-auto { background-color: #8b5cf6; }
+        .btn-manual { background-color: #10b981; }
+        .btn-copiar-pix { background-color: #3b82f6; padding: 7px; font-size: 12px; border: none; border-radius: 6px; color: white; cursor: pointer; }
+        .btn-cancelar-pix { background-color: #f87171; padding: 6px; font-size: 11px; border: none; border-radius: 6px; color: white; cursor: pointer; }
     </style>
 </head>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyCLC7C8mGgoWZUGGARH-D_5KhVAb81a9xY",
+  authDomain: "jd-show-premios-novo.firebaseapp.com",
+  databaseURL: "https://jd-show-premios-novo-default-rtdb.firebaseio.com",
+  projectId: "jd-show-premios-novo",
+  storageBucket: "jd-show-premios-novo.firebasestorage.app",
+  messagingSenderId: "1013416322561",
+  appId: "1:1013416322561:web:a7d072caf168c5d1ad4200"
+};
+</script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+<script>
+if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+var db = firebase.database();
+</script>
 <body>
 
     <div class="logo-wrap">
@@ -182,6 +228,38 @@
         </div>
     </div>
 
+    <div class="card-creditos" id="secaoCreditosCliente">
+        <h3>💳 Meus Créditos</h3>
+        <p style="font-size:11px; color:#64748b; text-align:center;">Um único saldo, válido tanto para o Bingo quanto para o Bolão.</p>
+        <div class="form-group">
+            <label>Nome Completo</label>
+            <input type="text" id="cliNome" placeholder="Ex: João Silva">
+        </div>
+        <div class="form-group">
+            <label>Telefone / WhatsApp</label>
+            <input type="text" id="cliTelefone" placeholder="Ex: 92999999999" onblur="atualizarListenerSaldo()">
+        </div>
+        <div class="saldo-box">Saldo atual: <span id="txtSaldoCreditos">R$ 0,00</span></div>
+
+        <div id="blocoFormComprarCredito">
+            <label>Adicionar Créditos (R$)</label>
+            <input type="number" id="valorComprarCredito" placeholder="Ex: 50" min="1" step="0.01" inputmode="decimal" onkeydown="if(['e','E','+','-'].includes(event.key)) event.preventDefault();">
+            <div style="display:flex; gap:8px; margin-top:8px;">
+                <button class="btn-credito btn-pix-auto" onclick="solicitarCompraCredito(true)">⚡ Pix Automático</button>
+                <button class="btn-credito btn-manual" onclick="solicitarCompraCredito(false)">💵 Dinheiro/Manual</button>
+            </div>
+        </div>
+
+        <div id="blocoQrPixCredito" style="display:none; flex-direction:column; align-items:center; gap:8px; background:#f8fafc; border:1px dashed #3b82f6; border-radius:8px; padding:12px;">
+            <p style="font-size:12px; font-weight:bold; color:#1e3a8a; text-align:center;">Escaneie o QR Code ou copie o código Pix:</p>
+            <img id="imgQrPixCredito" src="" alt="QR Code Pix" style="width:160px; height:160px;">
+            <input type="text" id="inputCopiaColaCredito" readonly style="text-align:center; background:#fff; font-size:11px;">
+            <button class="btn-copiar-pix" onclick="navigator.clipboard.writeText(document.getElementById('inputCopiaColaCredito').value); alert('Código copiado!');">📋 Copiar Código Pix</button>
+            <p id="txtAguardandoPix" style="font-size:12px; color:#64748b; text-align:center;">⏳ Aguardando confirmação do pagamento...</p>
+            <button class="btn-cancelar-pix" onclick="cancelarPixCredito()">Cancelar e tentar outro valor</button>
+        </div>
+    </div>
+
     <div class="aviso-idade">🔞 PROIBIDO PARA MENORES DE 18 ANOS</div>
 
     <div class="rodape">JD Show de Prêmios &copy; 2026</div>
@@ -198,6 +276,107 @@ function animarBonecoClique() {
             el.removeEventListener('animationend', limpar);
         }
     });
+}
+
+function normalizarTelefone(t) { return (t || '').replace(/\D/g, ''); }
+
+let saldoCreditosAtual = 0;
+let listenerSaldoAtivo = null;
+let listenerSolicitacaoAtiva = null;
+
+function atualizarListenerSaldo() {
+    let tel = normalizarTelefone(document.getElementById('cliTelefone').value);
+    if (!tel) return;
+    if (listenerSaldoAtivo) db.ref('creditos/' + listenerSaldoAtivo).off();
+    listenerSaldoAtivo = tel;
+    db.ref('creditos/' + tel).on('value', snap => {
+        saldoCreditosAtual = parseFloat(snap.val()) || 0;
+        document.getElementById('txtSaldoCreditos').innerText = "R$ " + saldoCreditosAtual.toFixed(2).replace('.', ',');
+    });
+}
+
+function solicitarCompraCredito(viaPix) {
+    let nome = document.getElementById('cliNome').value.trim();
+    let tel = document.getElementById('cliTelefone').value.trim();
+    let valorTexto = document.getElementById('valorComprarCredito').value.trim();
+    let valor = parseFloat(valorTexto);
+    let telDigitos = normalizarTelefone(tel);
+
+    if (!nome) return alert("Preencha seu nome antes de comprar créditos!");
+    if (!telDigitos || telDigitos.length < 8) return alert("Informe um telefone válido (com DDD) antes de comprar créditos!");
+    if (valorTexto === '' || !Number.isFinite(valor) || valor <= 0) return alert("Informe um valor numérico válido de crédito (maior que zero)!");
+
+    let novaRef = db.ref('solicitacoesCredito').push();
+    let solicitacaoId = novaRef.key;
+
+    if (!viaPix) {
+        novaRef.set({
+            id: solicitacaoId, nome: nome, telefone: tel, valor: valor,
+            status: 'pendente', formaPagamento: 'manual', criadoEm: Date.now()
+        }).then(() => {
+            document.getElementById('valorComprarCredito').value = '';
+            alert("✅ Solicitação registrada! Envie o comprovante ou combine o pagamento em dinheiro pelo WhatsApp. O crédito será liberado assim que o ADM confirmar.");
+            let msg = encodeURIComponent(`Olá! Quero adicionar R$ ${valor.toFixed(2).replace('.', ',')} de crédito na minha conta (${nome}), pagamento em dinheiro/comprovante manual.`);
+            window.open(`https://wa.me/5592993154399?text=${msg}`, '_blank');
+        });
+        return;
+    }
+
+    novaRef.set({
+        id: solicitacaoId, nome: nome, telefone: tel, valor: valor,
+        status: 'aguardando_pagamento', formaPagamento: 'pix', criadoEm: Date.now()
+    }).then(() => {
+        document.getElementById('blocoFormComprarCredito').style.display = 'none';
+        document.getElementById('txtAguardandoPix').innerText = "⏳ Gerando seu Pix, aguarde (pode levar até 1 minuto se o servidor estiver 'acordando')...";
+        document.getElementById('blocoQrPixCredito').style.display = 'flex';
+
+        fetch('https://jd-bingo-server.onrender.com/criar-pix', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ valor, nome, telefone: tel, solicitacaoId })
+        })
+        .then(r => r.json())
+        .then(dados => {
+            if (dados.erro) { mostrarFalhaPixUsarManual(nome, tel, valor, solicitacaoId, dados.erro); return; }
+            document.getElementById('imgQrPixCredito').src = "data:image/png;base64," + dados.qr_code_base64;
+            document.getElementById('inputCopiaColaCredito').value = dados.qr_code;
+            document.getElementById('txtAguardandoPix').innerText = "⏳ Aguardando confirmação do pagamento...";
+            escutarConfirmacaoCredito(solicitacaoId);
+        })
+        .catch(() => mostrarFalhaPixUsarManual(nome, tel, valor, solicitacaoId, "Falha de conexão com o servidor de pagamento"));
+    });
+}
+
+function mostrarFalhaPixUsarManual(nome, tel, valor, solicitacaoId, motivo) {
+    console.error("Pix automático indisponível:", motivo);
+    db.ref('solicitacoesCredito/' + solicitacaoId).update({ status: 'pendente', formaPagamento: 'manual' });
+    document.getElementById('blocoQrPixCredito').style.display = 'none';
+    document.getElementById('blocoFormComprarCredito').style.display = 'block';
+    alert("⚠️ Não foi possível gerar o Pix automático agora. Vamos te direcionar para o pagamento manual via WhatsApp.");
+    let msg = encodeURIComponent(`Olá! Quero adicionar R$ ${valor.toFixed(2).replace('.', ',')} de crédito na minha conta (${nome}). O Pix automático estava indisponível, vou enviar o comprovante manualmente.`);
+    window.open(`https://wa.me/5592993154399?text=${msg}`, '_blank');
+}
+
+function escutarConfirmacaoCredito(solicitacaoId) {
+    if (listenerSolicitacaoAtiva) db.ref('solicitacoesCredito/' + listenerSolicitacaoAtiva).off();
+    listenerSolicitacaoAtiva = solicitacaoId;
+    db.ref('solicitacoesCredito/' + solicitacaoId).on('value', snap => {
+        let s = snap.val();
+        if (s && s.status === 'aprovado') {
+            db.ref('solicitacoesCredito/' + solicitacaoId).off();
+            listenerSolicitacaoAtiva = null;
+            document.getElementById('blocoQrPixCredito').style.display = 'none';
+            document.getElementById('blocoFormComprarCredito').style.display = 'block';
+            document.getElementById('valorComprarCredito').value = '';
+            alert("✅ Pagamento confirmado! Seu crédito já está disponível.");
+        }
+    });
+}
+
+function cancelarPixCredito() {
+    if (listenerSolicitacaoAtiva) { db.ref('solicitacoesCredito/' + listenerSolicitacaoAtiva).off(); listenerSolicitacaoAtiva = null; }
+    document.getElementById('blocoQrPixCredito').style.display = 'none';
+    document.getElementById('blocoFormComprarCredito').style.display = 'block';
 }
 </script>
 </body>
