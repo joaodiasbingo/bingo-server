@@ -102,13 +102,20 @@ var db = firebase.database();
 <a href="index.html" class="link-voltar">← Voltar para Diversões Online</a>
 
 <div style="text-align:center; margin-bottom: 15px;">
-    <img src="boneco_abertura.png" alt="Mascote" id="bonecoMascote" class="boneco-mascote" onclick="animarBonecoClique()" style="width: 100px; height: auto;">
+    <img src="boneco_bolao_celular.png" alt="Mascote" id="bonecoMascote" class="boneco-mascote" onclick="animarBonecoClique()" style="width: 100px; height: auto;">
     <h1 style="font-family:'Arial Black',sans-serif; font-size:2.6rem; color:#FFD700; text-shadow:2px 2px 4px rgba(0,0,0,0.15);">JD</h1>
     <h2 style="font-size:1.1rem; color:#111; text-transform:uppercase;">Bolão Esportivo</h2>
 </div>
 
 <div style="text-align:center; background:#fef3c7; border:1px solid #f59e0b; color:#92400e; padding:6px 14px; border-radius:20px; font-size:13px; font-weight:700; margin-bottom:15px;">
     🪰 Modo: Acertou na Mosca
+</div>
+
+<div id="blocoVencedoresBolao" class="card" style="display:none; text-align:center; background:#fffbeb; border:2px solid #f59e0b;">
+    <img src="boneco_taca.png" alt="Vencedor" style="width:130px; height:auto; margin:0 auto;">
+    <h2 style="border:none; justify-content:center;">🏆 Temos Vencedor(es)!</h2>
+    <div id="infoJogoEncerrado" style="font-weight:bold;"></div>
+    <div class="lista-linhas-compacta" id="listaVencedoresBolao"></div>
 </div>
 
 <div id="telaBloqueioBolao" class="alerta-bloqueio" style="display:none;">
@@ -198,6 +205,32 @@ let meusPalpites = [];
 
 const LIMITE_PALPITES_POR_TELEFONE = 4;
 
+function renderizarBlocoVencedores(jogoHistorico) {
+    let bloco = document.getElementById('blocoVencedoresBolao');
+    if (!jogoHistorico) { bloco.style.display = 'none'; return; }
+
+    let vencedores = jogoHistorico.vencedores || [];
+    if (vencedores.length === 0) {
+        bloco.style.display = 'none';
+        return;
+    }
+
+    document.getElementById('infoJogoEncerrado').innerText =
+        `${jogoHistorico.timeCasa} ${jogoHistorico.placarCasaFinal} x ${jogoHistorico.placarForaFinal} ${jogoHistorico.timeFora}`;
+
+    let container = document.getElementById('listaVencedoresBolao');
+    container.innerHTML = "";
+    vencedores.forEach(v => {
+        let div = document.createElement('div');
+        div.className = "item-palpite";
+        div.innerHTML = `<div><strong>🎉 ${v.nome}</strong></div>` +
+            (jogoHistorico.valorPorVencedor ? `<div>R$ ${jogoHistorico.valorPorVencedor.toFixed(2).replace('.', ',')}</div>` : '');
+        container.appendChild(div);
+    });
+
+    bloco.style.display = 'flex';
+}
+
 function animarBonecoClique() {
     let el = document.getElementById('bonecoMascote');
     if (!el) return;
@@ -244,11 +277,13 @@ db.ref('bolao/jogoAtual').on('value', snap => {
     jogoAtual = snap.val();
     let telaBloqueio = document.getElementById('telaBloqueioBolao');
     let conteudo = document.getElementById('conteudoBolao');
+    let blocoVencedores = document.getElementById('blocoVencedoresBolao');
 
     if (!jogoAtual) {
         telaBloqueio.style.display = 'block';
         telaBloqueio.innerText = '⏳ Nenhum jogo cadastrado no momento. Volte em breve!';
         conteudo.style.display = 'none';
+        blocoVencedores.style.display = 'none';
         return;
     }
 
@@ -258,9 +293,18 @@ db.ref('bolao/jogoAtual').on('value', snap => {
             ? '🏁 O último jogo já foi encerrado. Aguarde o próximo!'
             : '🔒 As apostas para este jogo estão fechadas no momento.';
         conteudo.style.display = 'none';
+
+        if (jogoAtual.status === 'encerrado') {
+            db.ref('bolao/historicoJogos/' + jogoAtual.id).once('value').then(snapHist => {
+                renderizarBlocoVencedores(snapHist.val());
+            });
+        } else {
+            blocoVencedores.style.display = 'none';
+        }
         return;
     }
 
+    blocoVencedores.style.display = 'none';
     telaBloqueio.style.display = 'none';
     conteudo.style.display = 'flex';
 
