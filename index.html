@@ -233,7 +233,7 @@ var db = firebase.database();
         <p style="font-size:11px; color:#64748b; text-align:center;">Um único saldo, válido tanto para o Bingo quanto para o Bolão.</p>
         <div class="form-group">
             <label>Nome Completo</label>
-            <input type="text" id="cliNome" placeholder="Ex: João Silva">
+            <input type="text" id="cliNome" placeholder="Ex: João Silva" onblur="salvarIdentificacaoCliente()">
         </div>
         <div class="form-group">
             <label>Telefone / WhatsApp</label>
@@ -293,7 +293,26 @@ function atualizarListenerSaldo() {
         saldoCreditosAtual = parseFloat(snap.val()) || 0;
         document.getElementById('txtSaldoCreditos').innerText = "R$ " + saldoCreditosAtual.toFixed(2).replace('.', ',');
     });
+    salvarIdentificacaoCliente();
 }
+
+function salvarIdentificacaoCliente() {
+    let nome = document.getElementById('cliNome').value.trim();
+    let tel = document.getElementById('cliTelefone').value.trim();
+    if (nome) localStorage.setItem('jd_cliente_nome', nome);
+    if (tel) localStorage.setItem('jd_cliente_telefone', tel);
+}
+
+function restaurarIdentificacaoCliente() {
+    let nomeSalvo = localStorage.getItem('jd_cliente_nome');
+    let telSalvo = localStorage.getItem('jd_cliente_telefone');
+    if (nomeSalvo) document.getElementById('cliNome').value = nomeSalvo;
+    if (telSalvo) {
+        document.getElementById('cliTelefone').value = telSalvo;
+        atualizarListenerSaldo();
+    }
+}
+restaurarIdentificacaoCliente();
 
 function solicitarCompraCredito(viaPix) {
     let nome = document.getElementById('cliNome').value.trim();

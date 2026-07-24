@@ -144,14 +144,15 @@ var db = firebase.database();
         <div class="contador-bilhetes" style="background:#dbeafe; border-color:#93c5fd; color:#1e3a8a;">
             Saldo atual: <span id="txtSaldoCreditos">R$ 0,00</span>
         </div>
-        <p style="font-size:12px; color:#64748b; text-align:center;">O saldo de créditos é único, válido tanto para o Bingo quanto para o Bolão. Para adicionar créditos, acesse a <a href="index.html">página de entrada</a>.</p>
+        <p style="font-size:12px; color:#64748b; text-align:center;">O saldo de créditos é único, válido tanto para o Bingo quanto para o Bolão.</p>
+        <a href="index.html" class="btn-blue" style="text-align:center; text-decoration:none; display:block;">🔙 Retornar para Comprar Créditos</a>
     </section>
 
     <section class="card">
         <h2>🎯 Fazer Meu Palpite</h2>
         <div class="form-group">
             <label>Nome Completo</label>
-            <input type="text" id="cliNome" placeholder="Ex: João Silva">
+            <input type="text" id="cliNome" placeholder="Ex: João Silva" onblur="salvarIdentificacaoCliente()">
         </div>
         <div class="form-group">
             <label>Telefone / WhatsApp</label>
@@ -271,7 +272,26 @@ function atualizarListenerSaldo() {
         document.getElementById('txtSaldoCreditos').innerText = "R$ " + saldoCreditosAtual.toFixed(2).replace('.', ',');
     });
     renderizarMeusPalpites();
+    salvarIdentificacaoCliente();
 }
+
+function salvarIdentificacaoCliente() {
+    let nome = document.getElementById('cliNome').value.trim();
+    let tel = document.getElementById('cliTelefone').value.trim();
+    if (nome) localStorage.setItem('jd_cliente_nome', nome);
+    if (tel) localStorage.setItem('jd_cliente_telefone', tel);
+}
+
+function restaurarIdentificacaoCliente() {
+    let nomeSalvo = localStorage.getItem('jd_cliente_nome');
+    let telSalvo = localStorage.getItem('jd_cliente_telefone');
+    if (nomeSalvo) document.getElementById('cliNome').value = nomeSalvo;
+    if (telSalvo) {
+        document.getElementById('cliTelefone').value = telSalvo;
+        atualizarListenerSaldo();
+    }
+}
+restaurarIdentificacaoCliente();
 
 db.ref('bolao/jogoAtual').on('value', snap => {
     jogoAtual = snap.val();
