@@ -82,6 +82,10 @@
         .bilhete .bilhete-linha { display: flex; justify-content: space-between; font-size: 13px; padding: 3px 0; }
         .bilhete .bilhete-linha strong { color: #0f172a; }
         .btn-whatsapp { background-color: #25d366; color: white; margin-top: 10px; }
+        .badge-status-jogo { font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 10px; text-transform: uppercase; }
+        .badge-aberto { background: #dcfce7; color: #15803d; }
+        .card-jogo-bolao { border: 2px solid #e2e8f0; }
+        .card-jogo-bolao .topo-card-jogo { display: flex; justify-content: space-between; align-items: center; }
     </style>
 </head>
 <script>
@@ -111,31 +115,20 @@ var db = firebase.database();
     🪰 Modo: Acertou na Mosca
 </div>
 
-<div id="blocoVencedoresBolao" class="card" style="display:none; text-align:center; background:#fffbeb; border:2px solid #f59e0b;">
+<div id="blocoVencedoresBolao" class="card" style="display:none; text-align:center; background:#fffbeb; border:2px solid #f59e0b; width:100%; max-width:600px;">
     <img src="boneco_taca.png" alt="Vencedor" style="width:130px; height:auto; margin:0 auto;">
-    <h2 style="border:none; justify-content:center;">🏆 Temos Vencedor(es)!</h2>
-    <div id="infoJogoEncerrado" style="font-weight:bold;"></div>
-    <div class="lista-linhas-compacta" id="listaVencedoresBolao"></div>
+    <h2 style="border:none; justify-content:center;">🏆 Últimos Vencedores!</h2>
+    <div id="listaVencedoresBolao" style="display:flex; flex-direction:column; gap:10px;"></div>
 </div>
 
 <div id="telaBloqueioBolao" class="alerta-bloqueio" style="display:none;">
-    🔒 As apostas para este jogo estão fechadas no momento.
+    ⏳ Nenhum jogo disponível para aposta no momento. Volte em breve!
 </div>
 
 <div id="conteudoBolao" style="display:none; flex-direction:column; width:100%; max-width:600px; align-items:center;">
 
-    <section class="card">
-        <h2>⚽ Jogo Atual</h2>
-        <div class="info-jogo" id="infoJogo">Carregando jogo...</div>
-        <div class="placar-container">
-            <div class="placar-time"><div class="bolinha-time" id="bolinhaTimeCasa">?</div><div class="nome-time" id="nomeTimeCasa">-</div></div>
-            <div class="vs">X</div>
-            <div class="placar-time"><div class="bolinha-time" id="bolinhaTimeFora">?</div><div class="nome-time" id="nomeTimeFora">-</div></div>
-        </div>
-    </section>
-
     <div class="pote-destaque">
-        <div class="rotulo">Pote Acumulado do Jogo</div>
+        <div class="rotulo">Pote Acumulado do Acertou na Mosca</div>
         <div class="valor" id="txtPoteAtual">R$ 0,00</div>
     </div>
 
@@ -144,12 +137,6 @@ var db = firebase.database();
         <div class="contador-bilhetes" style="background:#dbeafe; border-color:#93c5fd; color:#1e3a8a;">
             Saldo atual: <span id="txtSaldoCreditos">R$ 0,00</span>
         </div>
-        <p style="font-size:12px; color:#64748b; text-align:center;">O saldo de créditos é único, válido tanto para o Bingo quanto para o Bolão.</p>
-        <a href="index.html" class="btn-blue" style="text-align:center; text-decoration:none; display:block;">🔙 Retornar para Comprar Créditos</a>
-    </section>
-
-    <section class="card">
-        <h2>🎯 Fazer Meu Palpite</h2>
         <div class="form-group">
             <label>Nome Completo</label>
             <input type="text" id="cliNome" placeholder="Ex: João Silva" onblur="salvarIdentificacaoCliente()">
@@ -158,79 +145,31 @@ var db = firebase.database();
             <label>Telefone / WhatsApp</label>
             <input type="text" id="cliTelefone" placeholder="Ex: 92999999999" onblur="atualizarListenerSaldo()">
         </div>
-
-        <div class="placar-container">
-            <div class="placar-time">
-                <div class="nome-time" id="nomeTimeCasaForm">Casa</div>
-                <input type="number" id="palpiteCasa" class="input-placar" min="0" max="20" placeholder="0">
-            </div>
-            <div class="vs">X</div>
-            <div class="placar-time">
-                <div class="nome-time" id="nomeTimeForaForm">Fora</div>
-                <input type="number" id="palpiteFora" class="input-placar" min="0" max="20" placeholder="0">
-            </div>
-        </div>
-
-        <button class="btn-green" onclick="comprarPalpite()">🎯 Confirmar Palpite (<span id="txtPrecoPalpite">R$ 0,00</span>)</button>
-
-        <div id="blocoBilhete" class="bilhete" style="display:none;">
-            <div class="bilhete-topo">
-                <div class="bilhete-casa">JD SHOW DE PRÊMIOS — BOLÃO ESPORTIVO</div>
-                <div class="bilhete-codigo" id="txtCodigoBilhete">-</div>
-            </div>
-            <div class="bilhete-linha"><span>Modo:</span><strong>🪰 Acertou na Mosca</strong></div>
-            <div class="bilhete-linha"><span>Jogo:</span><strong id="txtBilheteJogo">-</strong></div>
-            <div class="bilhete-linha"><span>Data/Hora:</span><strong id="txtBilheteDataHora">-</strong></div>
-            <div class="bilhete-linha"><span>Apostador:</span><strong id="txtBilheteNome">-</strong></div>
-            <div class="bilhete-linha"><span>Palpite:</span><strong id="txtBilhetePalpite">-</strong></div>
-            <div class="bilhete-linha"><span>Valor pago:</span><strong id="txtBilheteValor">-</strong></div>
-            <div class="bilhete-linha"><span>Emitido em:</span><strong id="txtBilheteData">-</strong></div>
-            <button class="btn-whatsapp" onclick="salvarBilheteWhatsapp()">📲 Salvar no WhatsApp</button>
-        </div>
-        <p style="font-size:12px; color:#64748b; text-align:center;" id="txtLimitePalpites">Você já fez 0 de 4 palpites permitidos neste jogo.</p>
+        <p style="font-size:12px; color:#64748b; text-align:center;">O saldo de créditos é único, válido tanto para o Bingo quanto para o Bolão.</p>
+        <a href="index.html" class="btn-blue" style="text-align:center; text-decoration:none; display:block;">🔙 Retornar para Comprar Créditos</a>
     </section>
 
     <section class="card">
-        <h2>📋 Meus Palpites Neste Jogo</h2>
+        <h2>⚽ Jogos Abertos para Aposta (<span id="totalJogosAbertos">0</span>)</h2>
+        <div id="listaJogosCliente" style="display:flex; flex-direction:column; gap:16px;"></div>
+    </section>
+
+    <section class="card">
+        <h2>📋 Meus Palpites</h2>
         <div class="lista-linhas-compacta" id="listaMeusPalpites">
-            <p style="color:#94a3b8; font-size:13px; text-align:center;">Você ainda não fez nenhum palpite neste jogo.</p>
+            <p style="color:#94a3b8; font-size:13px; text-align:center;">Você ainda não fez nenhum palpite.</p>
         </div>
     </section>
 </div>
 
 <script>
-let jogoAtual = null;
+let todosOsJogos = {};
 let saldoCreditosAtual = 0;
 let listenerSaldoAtivo = null;
 let meusPalpites = [];
+let ultimoBilhete = null;
 
 const LIMITE_PALPITES_POR_TELEFONE = 4;
-
-function renderizarBlocoVencedores(jogoHistorico) {
-    let bloco = document.getElementById('blocoVencedoresBolao');
-    if (!jogoHistorico) { bloco.style.display = 'none'; return; }
-
-    let vencedores = jogoHistorico.vencedores || [];
-    if (vencedores.length === 0) {
-        bloco.style.display = 'none';
-        return;
-    }
-
-    document.getElementById('infoJogoEncerrado').innerText =
-        `${jogoHistorico.timeCasa} ${jogoHistorico.placarCasaFinal} x ${jogoHistorico.placarForaFinal} ${jogoHistorico.timeFora}`;
-
-    let container = document.getElementById('listaVencedoresBolao');
-    container.innerHTML = "";
-    vencedores.forEach(v => {
-        let div = document.createElement('div');
-        div.className = "item-palpite";
-        div.innerHTML = `<div><strong>🎉 ${v.nome}</strong></div>` +
-            (jogoHistorico.valorPorVencedor ? `<div>R$ ${jogoHistorico.valorPorVencedor.toFixed(2).replace('.', ',')}</div>` : '');
-        container.appendChild(div);
-    });
-
-    bloco.style.display = 'flex';
-}
 
 function animarBonecoClique() {
     let el = document.getElementById('bonecoMascote');
@@ -246,6 +185,8 @@ function animarBonecoClique() {
     });
 }
 
+function normalizarTelefone(t) { return (t || '').replace(/\D/g, ''); }
+
 function iniciaisTime(nome) {
     if (!nome) return '?';
     let palavras = nome.replace(/[^\wÀ-ÿ\s]/g, '').split(' ').filter(p => p.length > 0);
@@ -259,8 +200,6 @@ function corDoTime(nome) {
     let cores = ['#3b82f6','#ef4444','#10b981','#f59e0b','#8b5cf6','#ec4899','#06b6d4','#f97316'];
     return cores[Math.abs(hash) % cores.length];
 }
-
-function normalizarTelefone(t) { return (t || '').replace(/\D/g, ''); }
 
 function atualizarListenerSaldo() {
     let tel = normalizarTelefone(document.getElementById('cliTelefone').value);
@@ -293,60 +232,14 @@ function restaurarIdentificacaoCliente() {
 }
 restaurarIdentificacaoCliente();
 
-db.ref('bolao/jogoAtual').on('value', snap => {
-    jogoAtual = snap.val();
-    let telaBloqueio = document.getElementById('telaBloqueioBolao');
-    let conteudo = document.getElementById('conteudoBolao');
-    let blocoVencedores = document.getElementById('blocoVencedoresBolao');
-
-    if (!jogoAtual) {
-        telaBloqueio.style.display = 'block';
-        telaBloqueio.innerText = '⏳ Nenhum jogo cadastrado no momento. Volte em breve!';
-        conteudo.style.display = 'none';
-        blocoVencedores.style.display = 'none';
-        return;
-    }
-
-    if (jogoAtual.status !== 'aberto') {
-        telaBloqueio.style.display = 'block';
-        telaBloqueio.innerText = jogoAtual.status === 'encerrado'
-            ? '🏁 O último jogo já foi encerrado. Aguarde o próximo!'
-            : '🔒 As apostas para este jogo estão fechadas no momento.';
-        conteudo.style.display = 'none';
-
-        if (jogoAtual.status === 'encerrado') {
-            db.ref('bolao/historicoJogos/' + jogoAtual.id).once('value').then(snapHist => {
-                renderizarBlocoVencedores(snapHist.val());
-            });
-        } else {
-            blocoVencedores.style.display = 'none';
-        }
-        return;
-    }
-
-    blocoVencedores.style.display = 'none';
-    telaBloqueio.style.display = 'none';
-    conteudo.style.display = 'flex';
-
-    document.getElementById('nomeTimeCasa').innerText = jogoAtual.timeCasa || '-';
-    document.getElementById('nomeTimeFora').innerText = jogoAtual.timeFora || '-';
-    let bolinhaCasa = document.getElementById('bolinhaTimeCasa');
-    let bolinhaFora = document.getElementById('bolinhaTimeFora');
-    bolinhaCasa.innerText = iniciaisTime(jogoAtual.timeCasa);
-    bolinhaCasa.style.background = corDoTime(jogoAtual.timeCasa);
-    bolinhaFora.innerText = iniciaisTime(jogoAtual.timeFora);
-    bolinhaFora.style.background = corDoTime(jogoAtual.timeFora);
-    document.getElementById('nomeTimeCasaForm').innerText = jogoAtual.timeCasa || 'Casa';
-    document.getElementById('nomeTimeForaForm').innerText = jogoAtual.timeFora || 'Fora';
-    document.getElementById('infoJogo').innerText = (jogoAtual.dataHora || '');
-    document.getElementById('txtPrecoPalpite').innerText = "R$ " + (parseFloat(jogoAtual.precoPalpite) || 0).toFixed(2).replace('.', ',');
-
-    renderizarMeusPalpites();
+db.ref('bolao/potJogo').on('value', snap => {
+    document.getElementById('txtPoteAtual').innerText = "R$ " + (parseFloat(snap.val()) || 0).toFixed(2).replace('.', ',');
 });
 
-db.ref('bolao/potJogo').on('value', snap => {
-    let pote = parseFloat(snap.val()) || 0;
-    document.getElementById('txtPoteAtual').innerText = "R$ " + pote.toFixed(2).replace('.', ',');
+db.ref('bolao/jogos').on('value', snap => {
+    todosOsJogos = snap.val() || {};
+    renderizarJogosAbertos();
+    renderizarMeusPalpites();
 });
 
 db.ref('bolao/palpites').on('value', snap => {
@@ -355,44 +248,138 @@ db.ref('bolao/palpites').on('value', snap => {
     renderizarMeusPalpites();
 });
 
-function renderizarMeusPalpites() {
-    let container = document.getElementById('listaMeusPalpites');
-    let contador = document.getElementById('txtLimitePalpites');
-    if (!container || !jogoAtual) return;
+db.ref('bolao/historicoJogos').on('value', snap => {
+    renderizarBlocoVencedores(snap.val() || {});
+});
 
-    let telAtual = normalizarTelefone(document.getElementById('cliTelefone').value);
-    let meus = meusPalpites.filter(p => p.jogoId === jogoAtual.id && (!telAtual || normalizarTelefone(p.telefone) === telAtual));
+function renderizarJogosAbertos() {
+    let ids = Object.keys(todosOsJogos).filter(id => todosOsJogos[id].status === 'aberto');
+    document.getElementById('totalJogosAbertos').innerText = ids.length;
 
-    if (contador) contador.innerText = `Você já fez ${meus.length} de ${LIMITE_PALPITES_POR_TELEFONE} palpites permitidos neste jogo.`;
+    let telaBloqueio = document.getElementById('telaBloqueioBolao');
+    let conteudo = document.getElementById('conteudoBolao');
 
-    container.innerHTML = "";
-    if (meus.length === 0) {
-        container.innerHTML = `<p style="color:#94a3b8; font-size:13px; text-align:center;">Você ainda não fez nenhum palpite neste jogo.</p>`;
+    if (ids.length === 0) {
+        telaBloqueio.style.display = 'block';
+        conteudo.style.display = 'none';
         return;
     }
-    meus.forEach(p => {
+    telaBloqueio.style.display = 'none';
+    conteudo.style.display = 'flex';
+
+    let container = document.getElementById('listaJogosCliente');
+    container.innerHTML = "";
+
+    ids.sort((a, b) => (todosOsJogos[a].numeroJogo || 0) - (todosOsJogos[b].numeroJogo || 0));
+
+    ids.forEach(id => {
+        let jogo = todosOsJogos[id];
+        let telAtual = normalizarTelefone(document.getElementById('cliTelefone').value);
+        let jaFeitos = meusPalpites.filter(p => p.jogoId == id && (!telAtual || normalizarTelefone(p.telefone) === telAtual)).length;
+
         let div = document.createElement('div');
-        div.className = "item-palpite";
-        div.innerHTML = `<div><strong>${jogoAtual.timeCasa} ${p.placarCasa} x ${p.placarFora} ${jogoAtual.timeFora}</strong></div>`;
+        div.className = "card card-jogo-bolao";
+        div.innerHTML = `
+            <div class="topo-card-jogo">
+                <strong>Jogo #${jogo.numeroJogo || '-'}</strong>
+                <span class="badge-status-jogo badge-aberto">ABERTO</span>
+            </div>
+            <div style="text-align:center; font-size:13px; color:#475569;">${jogo.dataHora || ''}</div>
+            <div class="placar-container">
+                <div class="placar-time">
+                    <div class="bolinha-time" style="background:${corDoTime(jogo.timeCasa)}">${iniciaisTime(jogo.timeCasa)}</div>
+                    <div class="nome-time">${jogo.timeCasa}</div>
+                </div>
+                <div class="vs">X</div>
+                <div class="placar-time">
+                    <div class="bolinha-time" style="background:${corDoTime(jogo.timeFora)}">${iniciaisTime(jogo.timeFora)}</div>
+                    <div class="nome-time">${jogo.timeFora}</div>
+                </div>
+            </div>
+            <div class="placar-container">
+                <div class="placar-time">
+                    <input type="number" id="palpiteCasa-${id}" class="input-placar" min="0" max="20" placeholder="0">
+                </div>
+                <div class="vs">X</div>
+                <div class="placar-time">
+                    <input type="number" id="palpiteFora-${id}" class="input-placar" min="0" max="20" placeholder="0">
+                </div>
+            </div>
+            <button class="btn-green" onclick="comprarPalpite('${id}')">🎯 Confirmar Palpite (R$ ${(parseFloat(jogo.precoPalpite)||0).toFixed(2).replace('.', ',')})</button>
+            <p style="font-size:11px; color:#64748b; text-align:center;">Você já fez ${jaFeitos} de ${LIMITE_PALPITES_POR_TELEFONE} palpites permitidos neste jogo.</p>
+            <div id="blocoBilhete-${id}" class="bilhete" style="display:none;"></div>
+        `;
         container.appendChild(div);
     });
 }
 
-function comprarPalpite() {
-    if (!jogoAtual || jogoAtual.status !== 'aberto') return alert("🔒 As apostas para este jogo estão fechadas!");
+function renderizarMeusPalpites() {
+    let container = document.getElementById('listaMeusPalpites');
+    if (!container) return;
+
+    let telAtual = normalizarTelefone(document.getElementById('cliTelefone').value);
+    let meus = meusPalpites.filter(p => !telAtual || normalizarTelefone(p.telefone) === telAtual);
+
+    container.innerHTML = "";
+    if (meus.length === 0) {
+        container.innerHTML = `<p style="color:#94a3b8; font-size:13px; text-align:center;">Você ainda não fez nenhum palpite.</p>`;
+        return;
+    }
+    meus.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+    meus.forEach(p => {
+        let jogo = todosOsJogos[p.jogoId];
+        let nomesTimes = jogo ? `${jogo.timeCasa} x ${jogo.timeFora}` : `Jogo #${p.jogoId}`;
+        let div = document.createElement('div');
+        div.className = "item-palpite";
+        div.innerHTML = `<div><strong>${nomesTimes}</strong><br><small>Palpite: ${p.placarCasa} x ${p.placarFora}</small></div>`;
+        container.appendChild(div);
+    });
+}
+
+function renderizarBlocoVencedores(historico) {
+    let bloco = document.getElementById('blocoVencedoresBolao');
+    let ids = Object.keys(historico).filter(id => (historico[id].vencedores || []).length > 0);
+
+    if (ids.length === 0) { bloco.style.display = 'none'; return; }
+
+    ids.sort((a, b) => (historico[b].encerradoEm || 0) - (historico[a].encerradoEm || 0));
+    ids = ids.slice(0, 3);
+
+    let container = document.getElementById('listaVencedoresBolao');
+    container.innerHTML = "";
+    ids.forEach(id => {
+        let j = historico[id];
+        let bloco2 = document.createElement('div');
+        bloco2.innerHTML = `<div style="font-weight:bold;">${j.timeCasa} ${j.placarCasaFinal} x ${j.placarForaFinal} ${j.timeFora}</div>`;
+        (j.vencedores || []).forEach(v => {
+            let linha = document.createElement('div');
+            linha.className = "item-palpite";
+            linha.innerHTML = `<div><strong>🎉 ${v.nome}</strong></div>` +
+                (j.valorPorVencedor ? `<div>R$ ${j.valorPorVencedor.toFixed(2).replace('.', ',')}</div>` : '');
+            bloco2.appendChild(linha);
+        });
+        container.appendChild(bloco2);
+    });
+
+    bloco.style.display = 'flex';
+}
+
+function comprarPalpite(jogoId) {
+    let jogo = todosOsJogos[jogoId];
+    if (!jogo || jogo.status !== 'aberto') return alert("🔒 As apostas para este jogo estão fechadas!");
 
     let nome = document.getElementById('cliNome').value.trim();
     let tel = document.getElementById('cliTelefone').value.trim();
     let telNormalizado = normalizarTelefone(tel);
-    let pCasa = parseInt(document.getElementById('palpiteCasa').value);
-    let pFora = parseInt(document.getElementById('palpiteFora').value);
-    let preco = parseFloat(jogoAtual.precoPalpite) || 0;
+    let pCasa = parseInt(document.getElementById('palpiteCasa-' + jogoId).value);
+    let pFora = parseInt(document.getElementById('palpiteFora-' + jogoId).value);
+    let preco = parseFloat(jogo.precoPalpite) || 0;
 
     if (!nome) return alert("Preencha seu nome!");
     if (!telNormalizado || telNormalizado.length < 8) return alert("Informe um telefone válido (com DDD)!");
     if (isNaN(pCasa) || isNaN(pFora) || pCasa < 0 || pFora < 0) return alert("Informe um placar válido para os dois times!");
 
-    let jaFeitos = meusPalpites.filter(p => p.jogoId === jogoAtual.id && normalizarTelefone(p.telefone) === telNormalizado).length;
+    let jaFeitos = meusPalpites.filter(p => p.jogoId == jogoId && normalizarTelefone(p.telefone) === telNormalizado).length;
     if (jaFeitos >= LIMITE_PALPITES_POR_TELEFONE) return alert(`⚠️ Você já atingiu o limite de ${LIMITE_PALPITES_POR_TELEFONE} palpites neste jogo!`);
 
     if (telNormalizado !== listenerSaldoAtivo) atualizarListenerSaldo();
@@ -408,7 +395,7 @@ function comprarPalpite() {
 
     db.ref('creditos/' + telNormalizado).set(novoSaldo);
     db.ref('bolao/palpites').push({
-        jogoId: jogoAtual.id,
+        jogoId: jogoId,
         nome: nome,
         telefone: tel,
         placarCasa: pCasa,
@@ -419,7 +406,7 @@ function comprarPalpite() {
     db.ref('bolao/potJogo').transaction(v => (parseFloat(v) || 0) + valorPote);
     db.ref('bolao/fundoCampeonato').transaction(v => (parseFloat(v) || 0) + valorFundo);
     db.ref('bolaoVendas').push({
-        jogoId: jogoAtual.id,
+        jogoId: jogoId,
         nome: nome,
         telefone: tel,
         valor: preco,
@@ -427,14 +414,14 @@ function comprarPalpite() {
         timestamp: Date.now()
     });
 
-    db.ref('bolao/contadorBilhetes/' + jogoAtual.id).transaction(v => (parseInt(v) || 0) + 1).then(resultado => {
+    db.ref('bolao/contadorBilhetes/' + jogoId).transaction(v => (parseInt(v) || 0) + 1).then(resultado => {
         let numeroBilhete = resultado.snapshot.val();
-        let codigo = `JDSP-ANM-J${jogoAtual.numeroJogo || '?'}-${String(numeroBilhete).padStart(4, '0')}`;
-        exibirBilhete({
+        let codigo = `JDSP-ANM-J${jogo.numeroJogo || '?'}-${String(numeroBilhete).padStart(4, '0')}`;
+        exibirBilhete(jogoId, {
             codigo: codigo,
-            timeCasa: jogoAtual.timeCasa,
-            timeFora: jogoAtual.timeFora,
-            dataHora: jogoAtual.dataHora,
+            timeCasa: jogo.timeCasa,
+            timeFora: jogo.timeFora,
+            dataHora: jogo.dataHora,
             nome: nome,
             placarCasa: pCasa,
             placarFora: pFora,
@@ -442,28 +429,33 @@ function comprarPalpite() {
         });
     });
 
-    document.getElementById('palpiteCasa').value = '';
-    document.getElementById('palpiteFora').value = '';
+    document.getElementById('palpiteCasa-' + jogoId).value = '';
+    document.getElementById('palpiteFora-' + jogoId).value = '';
 }
 
-let ultimoBilhete = null;
-
-function exibirBilhete(dados) {
+function exibirBilhete(jogoId, dados) {
     ultimoBilhete = dados;
-    document.getElementById('txtCodigoBilhete').innerText = dados.codigo;
-    document.getElementById('txtBilheteJogo').innerText = `${dados.timeCasa} x ${dados.timeFora}`;
-    document.getElementById('txtBilheteDataHora').innerText = dados.dataHora || '-';
-    document.getElementById('txtBilheteNome').innerText = dados.nome;
-    document.getElementById('txtBilhetePalpite').innerText = `${dados.placarCasa} x ${dados.placarFora}`;
-    document.getElementById('txtBilheteValor').innerText = "R$ " + dados.valor.toFixed(2).replace('.', ',');
-    document.getElementById('txtBilheteData').innerText = new Date().toLocaleString('pt-BR');
-    document.getElementById('blocoBilhete').style.display = 'block';
-    document.getElementById('blocoBilhete').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    let bloco = document.getElementById('blocoBilhete-' + jogoId);
+    if (!bloco) return;
+    bloco.innerHTML = `
+        <div class="bilhete-topo">
+            <div class="bilhete-casa">JD SHOW DE PRÊMIOS — BOLÃO ESPORTIVO</div>
+            <div class="bilhete-codigo">${dados.codigo}</div>
+        </div>
+        <div class="bilhete-linha"><span>Modo:</span><strong>🪰 Acertou na Mosca</strong></div>
+        <div class="bilhete-linha"><span>Jogo:</span><strong>${dados.timeCasa} x ${dados.timeFora}</strong></div>
+        <div class="bilhete-linha"><span>Data/Hora:</span><strong>${dados.dataHora || '-'}</strong></div>
+        <div class="bilhete-linha"><span>Apostador:</span><strong>${dados.nome}</strong></div>
+        <div class="bilhete-linha"><span>Palpite:</span><strong>${dados.placarCasa} x ${dados.placarFora}</strong></div>
+        <div class="bilhete-linha"><span>Valor pago:</span><strong>R$ ${dados.valor.toFixed(2).replace('.', ',')}</strong></div>
+        <div class="bilhete-linha"><span>Emitido em:</span><strong>${new Date().toLocaleString('pt-BR')}</strong></div>
+        <button class="btn-whatsapp" onclick='salvarBilheteWhatsapp(${JSON.stringify(dados)})'>📲 Salvar no WhatsApp</button>
+    `;
+    bloco.style.display = 'block';
+    bloco.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
-function salvarBilheteWhatsapp() {
-    if (!ultimoBilhete) return;
-    let d = ultimoBilhete;
+function salvarBilheteWhatsapp(d) {
     let texto = `🪰 *JD SHOW DE PRÊMIOS — BOLÃO ESPORTIVO*\n` +
         `Modo: Acertou na Mosca\n` +
         `Código: *${d.codigo}*\n\n` +

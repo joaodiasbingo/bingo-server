@@ -334,9 +334,7 @@ function solicitarCompraCredito(viaPix) {
             status: 'pendente', formaPagamento: 'manual', criadoEm: Date.now()
         }).then(() => {
             document.getElementById('valorComprarCredito').value = '';
-            alert("✅ Solicitação registrada! Envie o comprovante ou combine o pagamento em dinheiro pelo WhatsApp. O crédito será liberado assim que o ADM confirmar.");
-            let msg = encodeURIComponent(`Olá! Quero adicionar R$ ${valor.toFixed(2).replace('.', ',')} de crédito na minha conta (${nome}), pagamento em dinheiro/comprovante manual.`);
-            window.open(`https://wa.me/5592993154399?text=${msg}`, '_blank');
+            alert("✅ Solicitação registrada! O crédito será liberado assim que o ADM confirmar o pagamento.");
         });
         return;
     }
@@ -371,9 +369,7 @@ function mostrarFalhaPixUsarManual(nome, tel, valor, solicitacaoId, motivo) {
     db.ref('solicitacoesCredito/' + solicitacaoId).update({ status: 'pendente', formaPagamento: 'manual' });
     document.getElementById('blocoQrPixCredito').style.display = 'none';
     document.getElementById('blocoFormComprarCredito').style.display = 'block';
-    alert("⚠️ Não foi possível gerar o Pix automático agora. Vamos te direcionar para o pagamento manual via WhatsApp.");
-    let msg = encodeURIComponent(`Olá! Quero adicionar R$ ${valor.toFixed(2).replace('.', ',')} de crédito na minha conta (${nome}). O Pix automático estava indisponível, vou enviar o comprovante manualmente.`);
-    window.open(`https://wa.me/5592993154399?text=${msg}`, '_blank');
+    alert("⚠️ Não foi possível gerar o Pix automático agora. Sua solicitação foi registrada como pagamento manual — o crédito será liberado assim que o ADM confirmar.");
 }
 
 function escutarConfirmacaoCredito(solicitacaoId) {
