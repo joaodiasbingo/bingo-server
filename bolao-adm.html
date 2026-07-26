@@ -324,9 +324,11 @@ function renderizarListaJogos() {
 function togglePainel(idElemento) {
     let el = document.getElementById(idElemento);
     if (!el) return;
-    el.style.display = (el.style.display === 'none' || el.style.display === '') ? 'grid' : 'none';
+    let estaEscondido = (el.style.display === 'none' || el.style.display === '');
     if (el.classList.contains('painel-palpites-jogo')) {
-        el.style.display = (el.style.display === 'none' || el.style.display === '') ? 'block' : 'none';
+        el.style.display = estaEscondido ? 'block' : 'none';
+    } else {
+        el.style.display = estaEscondido ? 'grid' : 'none';
     }
 }
 
