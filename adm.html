@@ -634,10 +634,25 @@ function renderizarSalasParticulares() {
                 <div style="display:flex; gap:6px; width:100%;">
                     <button class="btn-blue" style="flex:1; font-size:11px; padding:6px;" onclick="navigator.clipboard.writeText('${linkCliente}'); alert('Link do cliente copiado!');">📋 Copiar Link Cliente</button>
                     <a href="adm.html?sala=${codigo}" class="btn-purple" style="flex:1; font-size:11px; padding:6px; text-align:center; text-decoration:none; display:flex; align-items:center; justify-content:center;">🔧 Entrar na Sala</a>
+                    <button class="btn-red" style="flex:1; font-size:11px; padding:6px;" onclick="excluirSalaParticular('${codigo}', '${sala.nome.replace(/'/g, "\\'")}')">🗑 Excluir</button>
                 </div>
             `;
             container.appendChild(div);
         });
+    });
+}
+
+function excluirSalaParticular(codigo, nome) {
+    let digitado = prompt(`⚠️ Isso vai APAGAR PERMANENTEMENTE a sala "${nome}" (cartelas, participantes, vencedores, vendas e histórico dessa sala). Essa ação não pode ser desfeita.\n\nPara confirmar, digite EXCLUIR abaixo:`);
+    if (digitado !== "EXCLUIR") {
+        alert("Ação cancelada. Nada foi apagado.");
+        return;
+    }
+
+    db.ref('salas/' + codigo).remove().then(() => {
+        return db.ref('salasIndex/' + codigo).remove();
+    }).then(() => {
+        alert(`✅ Sala "${nome}" excluída com sucesso.`);
     });
 }
 
