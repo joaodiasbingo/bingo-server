@@ -649,11 +649,15 @@ function excluirSalaParticular(codigo, nome) {
         return;
     }
 
-    db.ref('salas/' + codigo).remove().then(() => {
-        return db.ref('salasIndex/' + codigo).remove();
-    }).then(() => {
-        alert(`✅ Sala "${nome}" excluída com sucesso.`);
-    });
+    db.ref('salas/' + codigo).remove()
+        .then(() => db.ref('salasIndex/' + codigo).remove())
+        .then(() => {
+            alert(`✅ Sala "${nome}" excluída com sucesso.`);
+        })
+        .catch(erro => {
+            console.error("Erro ao excluir sala:", erro);
+            alert(`❌ Não foi possível excluir a sala. Erro: ${erro.message || erro}`);
+        });
 }
 
 function salvarConfiguracoesGlobais() {
