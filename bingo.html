@@ -150,6 +150,15 @@ const firebaseConfig = {
 
 if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 var db = firebase.database();
+
+function obterParametroURL(nome) {
+    let params = new URLSearchParams(window.location.search);
+    return params.get(nome);
+}
+const SALA_ID = obterParametroURL('sala') || 'geral';
+function refSala(caminho) {
+    return db.ref('salas/' + SALA_ID + '/' + caminho);
+}
 </script>
 
 <body>
@@ -162,6 +171,10 @@ var db = firebase.database();
             <h1 style="font-family: 'Arial Black', sans-serif; font-size: 4.5rem; color: #FFD700; line-height: 0.8; text-shadow: 2px 2px 4px rgba(0,0,0,0.15);">JD</h1>
             <h2 style="font-size: 1.1rem; color: #111; text-transform: uppercase;">Show de Prêmios</h2>
         </div>
+    </div>
+
+    <div id="badgeSalaParticular" style="display:none; text-align:center; background:#ede9fe; border:1px solid #8b5cf6; color:#5b21b6; padding:6px 14px; border-radius:20px; font-size:13px; font-weight:700; margin-bottom:12px;">
+        🔒 Sala Particular: <span id="txtNomeSalaParticular">-</span>
     </div>
 
     <a href="https://t.me/+g65YeHoPl4k1NjRh" target="_blank" class="btn-live-blue">
@@ -226,7 +239,7 @@ var db = firebase.database();
         </div>
         
         <div class="form-group" style="align-items: center; margin-top: 5px;">
-            <label>Escolha 3 Números da Sorte (1 a 75)</label>
+            <label>Números da Sorte (opcional, 1 a 75)</label>
             <div class="numeros-sorte-container">
                 <input type="number" id="sorte1" class="input-sorte" min="1" max="75">
                 <input type="number" id="sorte2" class="input-sorte" min="1" max="75">
@@ -378,18 +391,32 @@ function atualizarContadorBilhetes() {
     }
 }
 
-db.ref('jogo/rodadaAtual').on('value', snap => {
+refSala('jogo/rodadaAtual').on('value', snap => {
     rodadaAtualId = snap.val() || 1;
 });
 
-db.ref('jogo/preco').on('value', snap => {
+if (SALA_ID !== 'geral') {
+    db.ref('salasIndex/' + SALA_ID + '/nome').once('value').then(snap => {
+        let nomeSala = snap.val();
+        let badge = document.getElementById('badgeSalaParticular');
+        if (nomeSala) {
+            document.getElementById('txtNomeSalaParticular').innerText = nomeSala;
+            badge.style.display = 'block';
+        } else {
+            badge.style.display = 'block';
+            document.getElementById('txtNomeSalaParticular').innerText = 'Sala não encontrada';
+        }
+    });
+}
+
+refSala('jogo/preco').on('value', snap => {
     let bruto = (snap.val() || "0").toString().replace(',', '.');
     precoCartelaAtual = parseFloat(bruto) || 0;
     document.getElementById('topClientePreco').innerText = "R$ " + (snap.val() || "0,00");
 });
-db.ref('jogo/premio').on('value', snap => { document.getElementById('topClientePremio').innerText = snap.val() || "A Definir"; });
+refSala('jogo/premio').on('value', snap => { document.getElementById('topClientePremio').innerText = snap.val() || "A Definir"; });
 
-db.ref('jogo/status').on('value', snap => {
+refSala('jogo/status').on('value', snap => {
     statusAtualJogo = snap.val() || 'fechado';
     let secaoCompra = document.getElementById('secaoCompraCartela');
     let telaBloqueio = document.getElementById('telaBloqueioSite');
@@ -403,7 +430,7 @@ db.ref('jogo/status').on('value', snap => {
     }
 });
 
-db.ref('jogo/bolas').on('value', snap => {
+refSala('jogo/bolas').on('value', snap => {
     let dados = snap.val();
     
     if (!dados) {
@@ -440,7 +467,7 @@ function montarGradeBilheteCliente(numeros) {
     return `<div class="bilhete-grade">${celulas}</div>`;
 }
 
-db.ref('jogo/vencedores').on('value', snap => {
+refSala('jogo/vencedores').on('value', snap => {
     let dados = snap.val();
     let vencedores = dados ? Object.values(dados) : [];
     let box = document.getElementById('boxVencedorCliente');
@@ -502,9 +529,9 @@ db.ref('jogo/vencedores').on('value', snap => {
     }
 });
 
-db.ref('estoque').on('value', snap => { estoqueCompleto = snap.val() || {}; });
+refSala('estoque').on('value', snap => { estoqueCompleto = snap.val() || {}; });
 
-db.ref('participantes').on('value', snap => {
+refSala('participantes').on('value', snap => {
     participantesAtivos = [];
     let dados = snap.val();
     
@@ -550,14 +577,20 @@ function executarBuscaInteligenteBolasSorte() {
     let n2 = parseInt(document.getElementById('sorte2').value);
     let n3 = parseInt(document.getElementById('sorte3').value);
 
-    if(isNaN(n1) || isNaN(n2) || isNaN(n3)) return alert("Preencha as 3 dezenas da sorte para filtrar a melhor combinação!");
+    let livresTodas = Object.values(estoqueCompleto).filter(c => c && c.status === 'livre');
+    if(livresTodas.length === 0) return alert("Não há mais combinações livres neste estoque!");
 
-    let desejados = [n1, n2, n3];
-    let livres = Object.values(estoqueCompleto).filter(c => c && c.status === 'livre');
+    // Números da sorte são opcionais: se nenhum foi preenchido, já sorteia uma cartela aleatória direto
+    if(isNaN(n1) && isNaN(n2) && isNaN(n3)) {
+        cartelaSelecionada = livresTodas[Math.floor(Math.random() * livresTodas.length)];
+        aplicarCartelaEscolhida();
+        return;
+    }
 
-    if(livres.length === 0) return alert("Não há mais combinações livres neste estoque!");
+    let desejados = [n1, n2, n3].filter(n => !isNaN(n));
+    let livres = livresTodas;
 
-    let grupo3 = [], grupo2 = [], grupo1 = [];
+    let grupoMaximo = [], grupoParcial = {};
 
     livres.forEach(cartela => {
         if (!cartela || !cartela.numeros) return;
@@ -570,32 +603,36 @@ function executarBuscaInteligenteBolasSorte() {
         }
 
         let batidas = cNums.filter(n => desejados.includes(n)).length;
-        
-        if(batidas === 3) grupo3.push(cartela);
-        else if(batidas === 2) grupo2.push(cartela);
-        else if(batidas === 1) grupo1.push(cartela);
+        if(batidas > 0) {
+            if(!grupoParcial[batidas]) grupoParcial[batidas] = [];
+            grupoParcial[batidas].push(cartela);
+        }
     });
 
-    if(grupo3.length > 0) {
-        cartelaSelecionada = grupo3[Math.floor(Math.random() * grupo3.length)];
+    grupoMaximo = grupoParcial[desejados.length] || [];
+
+    if(grupoMaximo.length > 0) {
+        cartelaSelecionada = grupoMaximo[Math.floor(Math.random() * grupoMaximo.length)];
         aplicarCartelaEscolhida();
-    } else if(grupo2.length > 0) {
-        let aceita = confirm("Não encontramos nenhuma combinação com os 3 números exatos nas dezenas livres, mas encontramos opções com 2 deles! Deseja visualizar esta sugestão?");
-        if(aceita) {
-            cartelaSelecionada = grupo2[Math.floor(Math.random() * grupo2.length)];
-            aplicarCartelaEscolhida();
-        }
-    } else if(grupo1.length > 0) {
-        let aceita = confirm("Seus 3 números combinados não estão livres juntos. Deseja aceitar uma cartela contendo 1 de seus números da sorte?");
-        if(aceita) {
-            cartelaSelecionada = grupo1[Math.floor(Math.random() * grupo1.length)];
-            aplicarCartelaEscolhida();
-        }
-    } else {
-        alert("Nenhuma combinação contendo seus números da sorte está livre. Selecionamos uma excelente cartela aleatória com 15 números para você concorrer!");
-        cartelaSelecionada = livres[Math.floor(Math.random() * livres.length)];
-        aplicarCartelaEscolhida();
+        return;
     }
+
+    // Não achou combinação com todos os números desejados: tenta os níveis abaixo, do maior pro menor
+    for(let nivel = desejados.length - 1; nivel >= 1; nivel--) {
+        if(grupoParcial[nivel] && grupoParcial[nivel].length > 0) {
+            let aceita = confirm(`Não encontramos nenhuma combinação com os ${desejados.length} números exatos nas dezenas livres, mas encontramos opções com ${nivel} deles! Deseja visualizar esta sugestão?`);
+            if(aceita) {
+                let opcoes = grupoParcial[nivel];
+                cartelaSelecionada = opcoes[Math.floor(Math.random() * opcoes.length)];
+                aplicarCartelaEscolhida();
+            }
+            return;
+        }
+    }
+
+    alert("Nenhuma combinação contendo seus números da sorte está livre. Selecionamos uma excelente cartela aleatória com 15 números para você concorrer!");
+    cartelaSelecionada = livres[Math.floor(Math.random() * livres.length)];
+    aplicarCartelaEscolhida();
 }
 
 function aplicarCartelaEscolhida() {
@@ -781,7 +818,7 @@ function finalizarEExibirCanaisPagamento() {
     let nNumsSalvar = Array.isArray(cartelaSelecionada.numeros) ? cartelaSelecionada.numeros.slice(0, 15) : cartelaSelecionada.numeros.split(',').map(n => parseInt(n.trim()));
     let novoSaldo = saldoCreditosAtual - precoCartelaAtual;
 
-    db.ref('participantes/' + idAlvo).set({
+    refSala('participantes/' + idAlvo).set({
         id: idAlvo,
         idxEstoque: idAlvo,
         nome: nome,
@@ -792,8 +829,8 @@ function finalizarEExibirCanaisPagamento() {
         pagoComCredito: true
     }).then(() => {
         db.ref('creditos/' + telNormalizado).set(novoSaldo);
-        db.ref('estoque/' + idAlvo).update({ status: 'ocupado' });
-        db.ref('vendas').push({
+        refSala('estoque/' + idAlvo).update({ status: 'ocupado' });
+        refSala('vendas').push({
             cartelaId: idAlvo,
             nome: nome,
             telefone: tel,

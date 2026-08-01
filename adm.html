@@ -108,6 +108,15 @@ const firebaseConfig = {
 
 if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 var db = firebase.database();
+
+function obterParametroURL(nome) {
+    let params = new URLSearchParams(window.location.search);
+    return params.get(nome);
+}
+const SALA_ID = obterParametroURL('sala') || 'geral';
+function refSala(caminho) {
+    return db.ref('salas/' + SALA_ID + '/' + caminho);
+}
 </script>
 
 <body>
@@ -146,7 +155,24 @@ var db = firebase.database();
 </section>
 
 <div id="painelAdminControle" style="display: none; flex-direction: column; width: 100%; max-width: 600px;">
-    
+
+    <div id="badgeSalaAdmin" style="display:none; text-align:center; background:#ede9fe; border:1px solid #8b5cf6; color:#5b21b6; padding:8px 14px; border-radius:10px; font-size:13px; font-weight:700; margin-bottom:12px;">
+        🔒 Você está controlando a sala: <span id="txtNomeSalaAdmin">-</span><br>
+        <a href="adm.html" style="color:#5b21b6; font-weight:600; font-size:12px;">↩ Voltar para o painel Geral</a>
+    </div>
+
+    <section class="card" id="secaoSalasParticulares">
+        <h2>🔒 Salas Particulares</h2>
+        <div class="form-group">
+            <label>Nome da sala (ex: Aniversário da Maria)</label>
+            <input type="text" id="inpNomeNovaSala" placeholder="Digite um nome de identificação">
+        </div>
+        <button class="btn-purple" onclick="criarNovaSalaParticular()">➕ Criar Nova Sala Particular</button>
+        <div class="lista-linhas-compacta" id="listaSalasParticulares">
+            <p style="color:#94a3b8; font-size:13px; text-align:center;">Nenhuma sala particular criada ainda.</p>
+        </div>
+    </section>
+
     <section class="card">
         <h2>💰 Configurações da Rodada</h2>
         <div class="grid-inputs">
@@ -155,6 +181,7 @@ var db = firebase.database();
         </div>
         <button class="btn-green" onclick="salvarConfiguracoesGlobais()">💾 Salvar Configurações</button>
     </section>
+
 
     <section class="card" style="background: #eff6ff;">
         <h2>🔓 Status Geral do Site</h2>
@@ -285,18 +312,18 @@ function animarBonecoAdminClique() {
     });
 }
 
-db.ref('jogo/preco').on('value', snap => {
+refSala('jogo/preco').on('value', snap => {
     document.getElementById('topGlobalPreco').innerText = "R$ " + (snap.val() || "0,00");
     let bruto = (snap.val() || "0").toString().replace(',', '.');
     precoCartelaAtualAdmin = parseFloat(bruto) || 0;
 });
-db.ref('jogo/premio').on('value', snap => { document.getElementById('topGlobalPremio').innerText = snap.val() || "A Definir"; });
-db.ref('jogo/status').on('value', snap => {
+refSala('jogo/premio').on('value', snap => { document.getElementById('topGlobalPremio').innerText = snap.val() || "A Definir"; });
+refSala('jogo/status').on('value', snap => {
     let s = (snap.val() || 'fechado').toLowerCase();
     document.getElementById('txtStatusAtual').innerHTML = s === 'aberto' ? "<span style='color:green;'>🔓 ABERTO</span>" : "<span style='color:red;'>🔒 FECHADO</span>";
 });
 
-db.ref('jogo/rodadaAtual').on('value', snap => {
+refSala('jogo/rodadaAtual').on('value', snap => {
     rodadaAtualId = snap.val() || 1;
     let el = document.getElementById('resFinRodadaAtualId');
     if (el) el.innerText = rodadaAtualId;
@@ -327,7 +354,7 @@ function renderizarBilhetesVencedores(vencedores) {
     });
 }
 
-db.ref('jogo/vencedores').on('value', snap => {
+refSala('jogo/vencedores').on('value', snap => {
     let dados = snap.val();
     let vencedores = dados ? Object.values(dados) : [];
     let box = document.getElementById('boxVencedorAdmin');
@@ -375,7 +402,7 @@ db.ref('jogo/vencedores').on('value', snap => {
     }
 });
 
-db.ref('jogo/bolas').on('value', snap => {
+refSala('jogo/bolas').on('value', snap => {
     let dados = snap.val() || [];
     bolasSorteadas = Object.values(dados).map(b => parseInt(b));
     document.getElementById('bolaGlobal').innerText = bolasSorteadas.length > 0 ? bolasSorteadas[bolasSorteadas.length - 1] : "-";
@@ -396,7 +423,7 @@ db.ref('jogo/bolas').on('value', snap => {
     atualizarTelas();
 });
 
-db.ref('participantes').on('value', snap => {
+refSala('participantes').on('value', snap => {
     participantesAtivos = [];
     snap.forEach(c => { if(c.val()) participantesAtivos.push(c.val()); });
     document.getElementById('totalCartelas').innerText = participantesAtivos.length;
@@ -420,13 +447,13 @@ db.ref('creditos').on('value', snap => {
     if (eOrganizadorAutenticado) renderizarSaldosClientes();
 });
 
-db.ref('vendas').on('value', snap => {
+refSala('vendas').on('value', snap => {
     todasVendas = [];
     snap.forEach(c => { if (c.val()) todasVendas.push(c.val()); });
     if (eOrganizadorAutenticado) renderizarResumoFinanceiro();
 });
 
-db.ref('rodadas').on('value', snap => {
+refSala('rodadas').on('value', snap => {
     todasRodadas = snap.val() || {};
     if (eOrganizadorAutenticado) renderizarResumoFinanceiro();
 });
@@ -543,12 +570,79 @@ function liberarPainelAdmin() {
         eOrganizadorAutenticado = true;
         document.getElementById('cardLoginAdmin').style.display = 'none';
         document.getElementById('painelAdminControle').style.display = 'flex';
+
+        if (SALA_ID === 'geral') {
+            renderizarSalasParticulares();
+        } else {
+            document.getElementById('secaoSalasParticulares').style.display = 'none';
+            let badge = document.getElementById('badgeSalaAdmin');
+            badge.style.display = 'block';
+            db.ref('salasIndex/' + SALA_ID + '/nome').once('value').then(snap => {
+                document.getElementById('txtNomeSalaAdmin').innerText = snap.val() || 'Sala não encontrada';
+            });
+        }
+
         atualizarTelas();
     } else alert("Senha incorreta!");
 }
 
+function gerarCodigoSala() {
+    return Math.random().toString(36).substring(2, 8).toUpperCase();
+}
+
+function criarNovaSalaParticular() {
+    let nome = document.getElementById('inpNomeNovaSala').value.trim();
+    if (!nome) return alert("Digite um nome de identificação para a sala!");
+
+    let codigo = gerarCodigoSala();
+
+    db.ref('salasIndex/' + codigo).set({
+        nome: nome,
+        criadaEm: Date.now()
+    }).then(() => {
+        let linkCliente = window.location.origin + '/bingo.html?sala=' + codigo;
+        let linkAdmin = window.location.origin + '/adm.html?sala=' + codigo;
+        document.getElementById('inpNomeNovaSala').value = '';
+        alert(`✅ Sala "${nome}" criada!\n\nLink do CLIENTE (compartilhe este):\n${linkCliente}\n\nLink do PAINEL desta sala (só para você):\n${linkAdmin}`);
+    });
+}
+
+function renderizarSalasParticulares() {
+    db.ref('salasIndex').on('value', snap => {
+        let container = document.getElementById('listaSalasParticulares');
+        let dados = snap.val() || {};
+        let codigos = Object.keys(dados).sort((a, b) => (dados[b].criadaEm || 0) - (dados[a].criadaEm || 0));
+
+        if (codigos.length === 0) {
+            container.innerHTML = `<p style="color:#94a3b8; font-size:13px; text-align:center;">Nenhuma sala particular criada ainda.</p>`;
+            return;
+        }
+
+        container.innerHTML = "";
+        codigos.forEach(codigo => {
+            let sala = dados[codigo];
+            let linkCliente = window.location.origin + '/bingo.html?sala=' + codigo;
+            let linkAdmin = window.location.origin + '/adm.html?sala=' + codigo;
+
+            let div = document.createElement('div');
+            div.className = "item-lista-admin";
+            div.style.flexDirection = "column";
+            div.style.alignItems = "flex-start";
+            div.style.gap = "6px";
+            div.innerHTML = `
+                <div><strong>${sala.nome}</strong> <small style="color:#94a3b8;">(${codigo})</small></div>
+                <div style="display:flex; gap:6px; width:100%;">
+                    <button class="btn-blue" style="flex:1; font-size:11px; padding:6px;" onclick="navigator.clipboard.writeText('${linkCliente}'); alert('Link do cliente copiado!');">📋 Copiar Link Cliente</button>
+                    <a href="adm.html?sala=${codigo}" class="btn-purple" style="flex:1; font-size:11px; padding:6px; text-align:center; text-decoration:none; display:flex; align-items:center; justify-content:center;">🔧 Entrar na Sala</a>
+                </div>
+            `;
+            container.appendChild(div);
+        });
+    });
+}
+
 function salvarConfiguracoesGlobais() {
-    db.ref('jogo').update({ premio: document.getElementById('inpPremioJogo').value, preco: document.getElementById('inpValorCartela').value });
+    refSala('jogo').update({ premio: document.getElementById('inpPremioJogo').value, preco: document.getElementById('inpValorCartela').value });
     alert("Configurações salvas!");
 }
 
@@ -560,12 +654,12 @@ function alterarStatusJogo(st) {
             let confirmar = confirm(`Ao fechar o site, ${pendentes.length} cartela(s) pendente(s) (não paga(s)) serão descartadas e devolvidas ao estoque. Deseja continuar?`);
             if(!confirmar) return;
             pendentes.forEach(p => {
-                db.ref('participantes/' + p.id).remove();
-                db.ref('estoque/' + p.id).update({ status: 'livre' });
+                refSala('participantes/' + p.id).remove();
+                refSala('estoque/' + p.id).update({ status: 'livre' });
             });
         }
     }
-    db.ref('jogo/status').set(statusFormatado);
+    refSala('jogo/status').set(statusFormatado);
 }
 
 function sortearBolaManual() {
@@ -574,7 +668,7 @@ function sortearBolaManual() {
         return;
     }
 
-    db.ref('jogo/vencedores').once('value').then(snap => {
+    refSala('jogo/vencedores').once('value').then(snap => {
         if(snap.exists() && snap.val() !== null) {
             alert("⚠️ Operação Negada! O banco detectou que já há vencedor(es) coroado(s) para esta rodada.");
             return;
@@ -583,7 +677,7 @@ function sortearBolaManual() {
         let n = parseInt(prompt("Número da bola (1-75):"));
         if(isNaN(n) || n<1 || n>75 || bolasSorteadas.includes(n)) return alert("Número inválido ou já sorteado!");
         bolasSorteadas.push(n);
-        db.ref('jogo/bolas').set(bolasSorteadas);
+        refSala('jogo/bolas').set(bolasSorteadas);
         
         // Usa filter (não find) para capturar TODOS que baterem bingo na mesma bola, não só o primeiro
         // REGRA 2: se houver mais de 1 vencedor, o prêmio será dividido (ver aviso e cálculo em renderizarBilhetesVencedores/vencedores listener)
@@ -596,32 +690,37 @@ function sortearBolaManual() {
             vencedoresEncontrados.forEach(v => {
                 listaVencedores[v.id] = { id: v.id, nome: v.nome, telefone: v.telefone || "N/A", numeros: v.numeros };
             });
-            db.ref('jogo/vencedores').set(listaVencedores);
+            refSala('jogo/vencedores').set(listaVencedores);
         }
     });
 }
 
 function limparApenasBolas() {
-    if(confirm("Limpar Globo?")) { db.ref('jogo/bolas').set(null); db.ref('jogo/vencedores').set(null); }
+    if(confirm("Limpar Globo?")) { refSala('jogo/bolas').set(null); refSala('jogo/vencedores').set(null); }
 }
 
 function gerarNovoEstoqueNuvem() {
     let qtd = parseInt(document.getElementById('qtdCartelas').value) || 5000;
-    if(!confirm("Isso apagará todas as vendas! Continuar?")) return;
+
+    let digitado = prompt("⚠️ ATENÇÃO: isso vai APAGAR todas as cartelas, participantes e vendas da rodada atual, gerando um estoque totalmente novo. Essa ação NÃO pode ser desfeita.\n\nPara confirmar, digite a palavra APAGAR (em maiúsculas) abaixo:");
+    if (digitado !== "APAGAR") {
+        alert("Ação cancelada. Nada foi apagado.");
+        return;
+    }
 
     // Antes de zerar, guarda um "retrato" da rodada que está terminando:
     // o prêmio que estava configurado no momento do encerramento, para a apuração histórica.
-    db.ref('jogo/rodadaAtual').once('value').then(snapRodada => {
+    refSala('jogo/rodadaAtual').once('value').then(snapRodada => {
         let rodadaEncerrada = snapRodada.val() || 1;
 
-        db.ref('jogo/premio').once('value').then(snapPremio => {
-            db.ref('rodadas/' + rodadaEncerrada).set({
+        refSala('jogo/premio').once('value').then(snapPremio => {
+            refSala('rodadas/' + rodadaEncerrada).set({
                 id: rodadaEncerrada,
                 premio: snapPremio.val() || '',
                 encerradaEm: Date.now()
             }).then(() => {
                 let novaRodada = rodadaEncerrada + 1;
-                db.ref('jogo/rodadaAtual').set(novaRodada);
+                refSala('jogo/rodadaAtual').set(novaRodada);
                 prosseguirGeracaoEstoque(qtd);
             });
         });
@@ -629,7 +728,7 @@ function gerarNovoEstoqueNuvem() {
 }
 
 function prosseguirGeracaoEstoque(qtd) {
-    db.ref('participantes').set(null); db.ref('jogo/bolas').set(null); db.ref('jogo/vencedores').set(null); db.ref('estoque').set(null);
+    refSala('participantes').set(null); refSala('jogo/bolas').set(null); refSala('jogo/vencedores').set(null); refSala('estoque').set(null);
     
     let novoEstoque = {};
     let combinacoesUsadas = new Set(); // garante que nenhuma cartela se repita
@@ -651,7 +750,7 @@ function prosseguirGeracaoEstoque(qtd) {
         novoEstoque[gerados] = { id: gerados, numeros: numeros, status: 'livre' };
     }
 
-    db.ref('estoque').set(novoEstoque).then(() => {
+    refSala('estoque').set(novoEstoque).then(() => {
         if (gerados < qtd) {
             alert(`⚠️ Foram geradas ${gerados} cartelas únicas de ${qtd} solicitadas (limite de combinações possíveis atingido).`);
         } else {
@@ -739,11 +838,11 @@ function renderizarListaParticipantes() {
         if(p.status !== 'paga') {
             let b = document.createElement('button'); b.innerText = "Confirmar"; b.style.cssText="background:green;color:white;padding:4px;";
             b.onclick = () => {
-                db.ref('participantes/'+p.id).update({status:'paga'});
-                db.ref('estoque/'+p.id).update({status:'ocupado'});
+                refSala('participantes/'+p.id).update({status:'paga'});
+                refSala('estoque/'+p.id).update({status:'ocupado'});
 
                 // Registro da venda (caso ainda exista alguma cartela pendente de rodadas anteriores) para apuração
-                db.ref('vendas').push({
+                refSala('vendas').push({
                     cartelaId: p.id,
                     nome: p.nome,
                     telefone: p.telefone || '',
