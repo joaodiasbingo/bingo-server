@@ -28,6 +28,7 @@
         .placar-time { text-align: center; flex: 1; }
         .placar-time .nome-time { font-weight: 700; font-size: 15px; margin-bottom: 6px; }
         .bolinha-time { width: 46px; height: 46px; border-radius: 50%; color: white; font-size: 13px; font-weight: 800; display: flex; align-items: center; justify-content: center; margin: 0 auto 6px; }
+        .escudo-time { width: 46px; height: 46px; object-fit: contain; margin: 0 auto 6px; display: block; }
         .input-placar { width: 70px !important; height: 55px; text-align: center; font-size: 24px !important; font-weight: bold; border: 2px solid #3b82f6 !important; border-radius: 10px !important; background: #eff6ff; margin: 0 auto; }
         .vs { font-weight: 800; color: #94a3b8; font-size: 18px; }
         .pote-destaque { background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #78350f; border-radius: 12px; padding: 18px; text-align: center; }
@@ -201,6 +202,36 @@ function corDoTime(nome) {
     return cores[Math.abs(hash) % cores.length];
 }
 
+const ESCUDOS = {
+    "Atlético-MG": "escudos/escudo_atletico-mg.png",
+    "Athletico-PR": "escudos/escudo_athletico-pr.png",
+    "Bahia": "escudos/escudo_bahia.png",
+    "Botafogo": "escudos/escudo_botafogo.png",
+    "Bragantino": "escudos/escudo_bragantino.png",
+    "Chapecoense": "escudos/escudo_chapecoense.png",
+    "Corinthians": "escudos/escudo_corinthians.png",
+    "Coritiba": "escudos/escudo_coritiba.png",
+    "Cruzeiro": "escudos/escudo_cruzeiro.png",
+    "Flamengo": "escudos/escudo_flamengo.png",
+    "Fluminense": "escudos/escudo_fluminense.png",
+    "Grêmio": "escudos/escudo_gremio.png",
+    "Internacional": "escudos/escudo_internacional.png",
+    "Mirassol": "escudos/escudo_mirassol.png",
+    "Palmeiras": "escudos/escudo_palmeiras.png",
+    "Remo": "escudos/escudo_remo.png",
+    "Santos": "escudos/escudo_santos.png",
+    "São Paulo": "escudos/escudo_sao-paulo.png",
+    "Vasco da Gama": "escudos/escudo_vasco-da-gama.png",
+    "Vitória": "escudos/escudo_vitoria.png"
+};
+
+function montarBrasaoTime(nome) {
+    if (ESCUDOS[nome]) {
+        return `<img src="${ESCUDOS[nome]}" class="escudo-time" alt="${nome}">`;
+    }
+    return `<div class="bolinha-time" style="background:${corDoTime(nome)}">${iniciaisTime(nome)}</div>`;
+}
+
 function atualizarListenerSaldo() {
     let tel = normalizarTelefone(document.getElementById('cliTelefone').value);
     if (!tel) return;
@@ -287,12 +318,12 @@ function renderizarJogosAbertos() {
             <div style="text-align:center; font-size:13px; color:#475569;">${jogo.dataHora || ''}</div>
             <div class="placar-container">
                 <div class="placar-time">
-                    <div class="bolinha-time" style="background:${corDoTime(jogo.timeCasa)}">${iniciaisTime(jogo.timeCasa)}</div>
+                    ${montarBrasaoTime(jogo.timeCasa)}
                     <div class="nome-time">${jogo.timeCasa}</div>
                 </div>
                 <div class="vs">X</div>
                 <div class="placar-time">
-                    <div class="bolinha-time" style="background:${corDoTime(jogo.timeFora)}">${iniciaisTime(jogo.timeFora)}</div>
+                    ${montarBrasaoTime(jogo.timeFora)}
                     <div class="nome-time">${jogo.timeFora}</div>
                 </div>
             </div>
