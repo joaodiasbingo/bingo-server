@@ -571,7 +571,10 @@ function rodadaEstaNoPrazo(rodada) {
 }
 
 function renderizarRodadasAbertas() {
-    let ids = Object.keys(todasRodadasCliente).filter(id => rodadaEstaNoPrazo(todasRodadasCliente[id]));
+    let ids = Object.keys(todasRodadasCliente).filter(id => {
+        let r = todasRodadasCliente[id];
+        return rodadaEstaNoPrazo(r) && Object.keys(r.jogos || {}).length > 0;
+    });
     let telaBloqueio = document.getElementById('telaBloqueioRodada');
     let container = document.getElementById('listaRodadasCliente');
 
@@ -614,7 +617,7 @@ function renderizarRodadasAbertas() {
         div.className = "card card-rodada-cliente";
         div.innerHTML = `
             <div style="display:flex; justify-content:space-between; align-items:center;">
-                <strong>Rodada #${rodada.numeroRodada}</strong>
+                <strong>Rodada #${rodada.numeroRodada}${rodada.identificacao ? ' — ' + rodada.identificacao : ''}</strong>
                 <span class="badge-status-jogo badge-aberto">ABERTA</span>
             </div>
             <div style="font-size:12px; color:#b45309; font-weight:700; text-align:center;">⏰ Prazo final: ${new Date(rodada.prazoFinal).toLocaleString('pt-BR')}</div>
@@ -696,6 +699,7 @@ function comprarCartaoRodada(rodadaId) {
         exibirBilheteRodada(rodadaId, {
             codigo: codigo,
             numeroRodada: rodada.numeroRodada,
+            identificacao: rodada.identificacao,
             nome: nome,
             valor: preco,
             qtdJogos: jogosIds.length
@@ -717,7 +721,7 @@ function exibirBilheteRodada(rodadaId, dados) {
             <div class="bilhete-codigo">${dados.codigo}</div>
         </div>
         <div class="bilhete-linha"><span>Modo:</span><strong>🔮 Vidente da Rodada</strong></div>
-        <div class="bilhete-linha"><span>Rodada:</span><strong>#${dados.numeroRodada}</strong></div>
+        <div class="bilhete-linha"><span>Rodada:</span><strong>#${dados.numeroRodada}${dados.identificacao ? ' — ' + dados.identificacao : ''}</strong></div>
         <div class="bilhete-linha"><span>Jogos no cartão:</span><strong>${dados.qtdJogos}</strong></div>
         <div class="bilhete-linha"><span>Apostador:</span><strong>${dados.nome}</strong></div>
         <div class="bilhete-linha"><span>Valor pago:</span><strong>R$ ${dados.valor.toFixed(2).replace('.', ',')}</strong></div>
@@ -742,10 +746,11 @@ function renderizarMeusCartoesRodada() {
     meus.forEach(c => {
         let rodada = todasRodadasCliente[c.rodadaId];
         let numeroRodada = rodada ? rodada.numeroRodada : '?';
+        let identificacaoTxt = rodada && rodada.identificacao ? ' — ' + rodada.identificacao : '';
         let pontosTxt = (c.pontos !== undefined && c.pontos !== null) ? `${c.pontos} pontos` : 'aguardando apuração';
         let div = document.createElement('div');
         div.className = "item-palpite";
-        div.innerHTML = `<div><strong>Rodada #${numeroRodada}</strong><br><small>${pontosTxt}</small></div>`;
+        div.innerHTML = `<div><strong>Rodada #${numeroRodada}${identificacaoTxt}</strong><br><small>${pontosTxt}</small></div>`;
         container.appendChild(div);
     });
 }
@@ -763,7 +768,7 @@ function renderizarVencedoresRodada(historico) {
     ids.forEach(id => {
         let r = historico[id];
         let bloco2 = document.createElement('div');
-        bloco2.innerHTML = `<div style="font-weight:bold;">Rodada #${r.numeroRodada}</div>`;
+        bloco2.innerHTML = `<div style="font-weight:bold;">Rodada #${r.numeroRodada}${r.identificacao ? ' — ' + r.identificacao : ''}</div>`;
         (r.vencedores || []).forEach(v => {
             let linha = document.createElement('div');
             linha.className = "item-palpite";

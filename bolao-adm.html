@@ -74,6 +74,7 @@
         }
         .badge-status-jogo { font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 10px; text-transform: uppercase; }
         .badge-aberto { background: #dcfce7; color: #15803d; }
+        .badge-montagem { background: #ede9fe; color: #5b21b6; }
         .badge-fechado { background: #fee2e2; color: #b91c1c; }
         .badge-encerrado { background: #e2e8f0; color: #475569; }
         .jogo-linha-admin { display: flex; flex-direction: column; gap: 8px; padding: 12px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; }
@@ -241,7 +242,67 @@ var db = firebase.database();
             <label>Preço do Cartão (R$) — vale para os palpites em TODOS os jogos da rodada</label>
             <input type="text" id="inpPrecoCartaoRodada" placeholder="Ex: 10,00">
         </div>
-        <button class="btn-green" onclick="finalizarCriacaoRodada()">🆕 Criar Rodada</button>
+    <section class="card">
+        <h2>🆕 Abrir Nova Rodada</h2>
+        <div class="form-group">
+            <label>Identificação da Rodada (opcional — ex: "15ª Rodada Brasileirão")</label>
+            <input type="text" id="inpIdentificacaoRodada" placeholder="Deixe em branco para usar só o número">
+        </div>
+        <div class="form-group">
+            <label>Horário do 1º jogo da rodada (define quando as apostas fecham)</label>
+            <input type="datetime-local" id="inpHorarioPrimeiroJogo">
+        </div>
+        <div class="form-group">
+            <label>Preço do Cartão (R$) — vale para os palpites em TODOS os jogos desta rodada</label>
+            <input type="text" id="inpPrecoCartaoRodada" placeholder="Ex: 10,00">
+        </div>
+        <button class="btn-green" onclick="abrirNovaRodada()">🔓 Abrir Rodada</button>
+    </section>
+
+    <section class="card">
+        <h2>➕ Adicionar Jogo a uma Rodada</h2>
+        <p id="avisoNenhumaRodadaSelecionada" style="color:#94a3b8; font-size:13px; text-align:center;">Clique em "➕ Adicionar Jogo" numa rodada da lista abaixo pra começar.</p>
+
+        <div id="painelAdicionarJogo" style="display:none;">
+            <p style="font-size:13px; font-weight:700; color:#5b21b6; text-align:center;">Adicionando jogo à Rodada #<span id="txtRodadaAlvoNumero">-</span></p>
+
+            <div class="form-group">
+                <label>Campeonato</label>
+                <select id="selCampeonatoRodada" onchange="atualizarGradeRodada()">
+                    <option value="brasileirao">Brasileirão Série A</option>
+                    <option value="premier">Premier League</option>
+                    <option value="laliga">La Liga</option>
+                    <option value="champions">Champions League (digitar manualmente)</option>
+                </select>
+            </div>
+
+            <div id="blocoSelecaoTextoRodada" class="grid-inputs" style="display:none;">
+                <div class="form-group">
+                    <label>Time da Casa</label>
+                    <select id="selRodadaTimeCasa"></select>
+                    <input type="text" id="txtRodadaTimeCasaLivre" placeholder="Time da casa" style="display:none;">
+                </div>
+                <div class="form-group">
+                    <label>Time Visitante</label>
+                    <select id="selRodadaTimeFora"></select>
+                    <input type="text" id="txtRodadaTimeForaLivre" placeholder="Time visitante" style="display:none;">
+                </div>
+            </div>
+
+            <div id="blocoSelecaoEscudosRodada" style="display:none;">
+                <div class="status-selecao-times">
+                    <div>🏠 Casa: <strong id="txtStatusRodadaTimeCasa">-</strong></div>
+                    <div>✈️ Visitante: <strong id="txtStatusRodadaTimeFora">-</strong></div>
+                </div>
+                <div id="gradeTimesRodada" class="grade-escudos"></div>
+            </div>
+
+            <div class="form-group">
+                <label>Horário deste jogo (opcional, só informativo — não afeta o prazo)</label>
+                <input type="datetime-local" id="inpHorarioJogoOpcional">
+            </div>
+            <button class="btn-blue" onclick="confirmarAdicaoJogo()">➕ Adicionar este Jogo</button>
+        </div>
     </section>
 
     <section class="card">
@@ -738,7 +799,65 @@ function atualizarStatusRodadaSelecao() {
     if (f) f.innerText = rodadaSelTimeFora || '-';
 }
 
-function adicionarJogoNaRodada() {
+let rodadaEmEdicaoId = null;
+
+function abrirNovaRodada() {
+    let identificacao = document.getElementById('inpIdentificacaoRodada').value.trim();
+    let horarioInput = document.getElementById('inpHorarioPrimeiroJogo').value;
+    if (!horarioInput) return alert("Informe o horário do 1º jogo da rodada!");
+    let prazoFinal = new Date(horarioInput).getTime();
+    if (isNaN(prazoFinal)) return alert("Horário inválido!");
+
+    let preco = parseFloat(document.getElementById('inpPrecoCartaoRodada').value.replace(',', '.'));
+    if (isNaN(preco) || preco <= 0) return alert("Informe um preço de cartão válido!");
+
+    let novoId = Date.now();
+
+    db.ref('bolaoRodada/proximoNumeroRodada').transaction(v => (parseInt(v) || 0) + 1).then(resultado => {
+        let numeroRodada = resultado.snapshot.val();
+
+        db.ref('bolaoRodada/rodadas/' + novoId).set({
+            id: novoId,
+            numeroRodada: numeroRodada,
+            identificacao: identificacao || null,
+            precoCartao: preco,
+            prazoFinal: prazoFinal,
+            status: 'montagem',
+            jogos: {}
+        }).then(() => {
+            alert(`✅ Rodada #${numeroRodada}${identificacao ? ' (' + identificacao + ')' : ''} criada (em montagem, ainda invisível pros clientes). Adicione todos os jogos dela logo abaixo e, quando terminar, clique em "🚀 Liberar p/ Clientes".`);
+            document.getElementById('inpIdentificacaoRodada').value = '';
+            document.getElementById('inpHorarioPrimeiroJogo').value = '';
+            document.getElementById('inpPrecoCartaoRodada').value = '';
+            selecionarRodadaParaAdicionarJogo(novoId);
+        });
+    });
+}
+
+function liberarRodadaParaClientes(rodadaId) {
+    let rodada = todasRodadasVidente[rodadaId];
+    if (!rodada) return;
+    let qtdJogos = Object.keys(rodada.jogos || {}).length;
+    if (qtdJogos === 0) return alert("Adicione ao menos 1 jogo antes de liberar a rodada!");
+    if (!confirm(`Confirma liberar a Rodada #${rodada.numeroRodada} (${qtdJogos} jogo(s)) para os clientes? A partir de agora ela fica visível e aceita apostas até o prazo final.`)) return;
+    db.ref('bolaoRodada/rodadas/' + rodadaId + '/status').set('aberto');
+}
+
+function selecionarRodadaParaAdicionarJogo(rodadaId) {
+    rodadaEmEdicaoId = rodadaId;
+    let rodada = todasRodadasVidente[rodadaId];
+    document.getElementById('avisoNenhumaRodadaSelecionada').style.display = 'none';
+    document.getElementById('painelAdicionarJogo').style.display = 'block';
+    document.getElementById('txtRodadaAlvoNumero').innerText = rodada ? (rodada.numeroRodada + (rodada.identificacao ? ' — ' + rodada.identificacao : '')) : '?';
+    rodadaSelTimeCasa = null;
+    rodadaSelTimeFora = null;
+    atualizarGradeRodada();
+    document.getElementById('painelAdicionarJogo').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function confirmarAdicaoJogo() {
+    if (!rodadaEmEdicaoId) return alert("Selecione uma rodada primeiro (clique em ➕ Adicionar Jogo numa rodada da lista)!");
+
     let campeonato = document.getElementById('selCampeonatoRodada').value;
     let timeCasa, timeFora;
     if (campeonato === 'champions') {
@@ -755,65 +874,19 @@ function adicionarJogoNaRodada() {
     if (!timeCasa || !timeFora) return alert("Selecione (ou digite) os dois times deste jogo!");
     if (timeCasa === timeFora) return alert("Os times não podem ser iguais!");
 
-    jogosNovaRodada.push({ campeonato: campeonato, timeCasa: timeCasa, timeFora: timeFora });
-
-    rodadaSelTimeCasa = null;
-    rodadaSelTimeFora = null;
-    atualizarGradeRodada();
-    renderizarJogosTempRodada();
-}
-
-function renderizarJogosTempRodada() {
-    let container = document.getElementById('listaJogosTempRodada');
-    if (jogosNovaRodada.length === 0) {
-        container.innerHTML = `<p style="color:#94a3b8; font-size:12px; text-align:center;">Nenhum jogo adicionado ainda.</p>`;
-        return;
+    let horarioOpcional = document.getElementById('inpHorarioJogoOpcional').value;
+    let jogoObj = { campeonato: campeonato, timeCasa: timeCasa, timeFora: timeFora };
+    if (horarioOpcional) {
+        let ms = new Date(horarioOpcional).getTime();
+        if (!isNaN(ms)) jogoObj.dataHora = ms;
     }
-    container.innerHTML = "";
-    jogosNovaRodada.forEach((j, i) => {
-        let div = document.createElement('div');
-        div.className = "item-lista-admin";
-        div.innerHTML = `<div>${j.timeCasa} x ${j.timeFora}</div>`;
-        let b = document.createElement('button');
-        b.innerText = "Remover";
-        b.style.cssText = "background:#ef4444;color:white;padding:4px 8px;font-size:11px;width:auto;";
-        b.onclick = () => { jogosNovaRodada.splice(i, 1); renderizarJogosTempRodada(); };
-        div.appendChild(b);
-        container.appendChild(div);
-    });
-}
 
-function finalizarCriacaoRodada() {
-    if (jogosNovaRodada.length === 0) return alert("Adicione ao menos 1 jogo à rodada!");
-    let horarioInput = document.getElementById('inpHorarioPrimeiroJogo').value;
-    if (!horarioInput) return alert("Informe o horário do 1º jogo da rodada!");
-    let prazoFinal = new Date(horarioInput).getTime();
-    if (isNaN(prazoFinal)) return alert("Horário inválido!");
-
-    let preco = parseFloat(document.getElementById('inpPrecoCartaoRodada').value.replace(',', '.'));
-    if (isNaN(preco) || preco <= 0) return alert("Informe um preço de cartão válido!");
-
-    let novoId = Date.now();
-
-    db.ref('bolaoRodada/proximoNumeroRodada').transaction(v => (parseInt(v) || 0) + 1).then(resultado => {
-        let numeroRodada = resultado.snapshot.val();
-        let jogosObj = {};
-        jogosNovaRodada.forEach((j, i) => { jogosObj['j' + i] = j; });
-
-        db.ref('bolaoRodada/rodadas/' + novoId).set({
-            id: novoId,
-            numeroRodada: numeroRodada,
-            precoCartao: preco,
-            prazoFinal: prazoFinal,
-            status: 'fechado',
-            jogos: jogosObj
-        }).then(() => {
-            alert(`✅ Rodada #${numeroRodada} criada com ${jogosNovaRodada.length} jogo(s)! Apostas fecham em: ${new Date(prazoFinal).toLocaleString('pt-BR')}. Clique em "Abrir" na lista abaixo quando quiser liberar as apostas.`);
-            jogosNovaRodada = [];
-            renderizarJogosTempRodada();
-            document.getElementById('inpPrecoCartaoRodada').value = '';
-            document.getElementById('inpHorarioPrimeiroJogo').value = '';
-        });
+    db.ref('bolaoRodada/rodadas/' + rodadaEmEdicaoId + '/jogos').push(jogoObj).then(() => {
+        alert(`✅ Jogo ${timeCasa} x ${timeFora} adicionado à Rodada #${document.getElementById('txtRodadaAlvoNumero').innerText}!`);
+        rodadaSelTimeCasa = null;
+        rodadaSelTimeFora = null;
+        atualizarGradeRodada();
+        document.getElementById('inpHorarioJogoOpcional').value = '';
     });
 }
 
@@ -845,8 +918,8 @@ function renderizarListaRodadasAdmin() {
     ids.forEach(id => {
         let rodada = todasRodadasVidente[id];
         let cartoesDaRodada = todosCartoesVidente.filter(c => c.rodadaId == id);
-        let statusClasse = rodada.status === 'aberto' ? 'badge-aberto' : (rodada.status === 'encerrada' ? 'badge-encerrado' : 'badge-fechado');
-        let statusTexto = rodada.status === 'aberto' ? 'ABERTA' : (rodada.status === 'encerrada' ? 'ENCERRADA' : 'FECHADA');
+        let statusClasse = rodada.status === 'aberto' ? 'badge-aberto' : (rodada.status === 'encerrada' ? 'badge-encerrado' : (rodada.status === 'montagem' ? 'badge-montagem' : 'badge-fechado'));
+        let statusTexto = rodada.status === 'aberto' ? 'ABERTA' : (rodada.status === 'encerrada' ? 'ENCERRADA' : (rodada.status === 'montagem' ? 'EM MONTAGEM' : 'FECHADA'));
 
         let jogosIds = Object.keys(rodada.jogos || {});
         let jogosHtml = jogosIds.map(jid => {
@@ -872,15 +945,17 @@ function renderizarListaRodadasAdmin() {
         div.className = "jogo-linha-admin";
         div.innerHTML = `
             <div class="topo-jogo">
-                <div><strong>Rodada #${rodada.numeroRodada}</strong><br>
+                <div><strong>Rodada #${rodada.numeroRodada}${rodada.identificacao ? ' — ' + rodada.identificacao : ''}</strong><br>
                 <small>Prazo: ${new Date(rodada.prazoFinal).toLocaleString('pt-BR')} — Cartão: R$ ${(parseFloat(rodada.precoCartao) || 0).toFixed(2).replace('.', ',')} — 🎫 ${cartoesDaRodada.length} cartões</small></div>
                 <span class="badge-status-jogo ${statusClasse}">${statusTexto}</span>
             </div>
             <div>${jogosHtml}</div>
             <div class="acoes-jogo">
-                <button class="btn-green" onclick="alterarStatusRodada('${id}', 'aberto')" ${rodada.status === 'encerrada' ? 'disabled' : ''}>🔓 Abrir</button>
-                <button class="btn-red" onclick="alterarStatusRodada('${id}', 'fechado')" ${rodada.status === 'encerrada' ? 'disabled' : ''}>🔒 Fechar</button>
-                <button class="btn-purple" onclick="apurarRodada('${id}')" ${(!todosComPlacar || rodada.status === 'encerrada') ? 'disabled' : ''}>🏁 Apurar Rodada</button>
+                <button class="btn-blue" onclick="selecionarRodadaParaAdicionarJogo('${id}')" ${rodada.status === 'encerrada' ? 'disabled' : ''}>➕ Adicionar Jogo</button>
+                <button class="btn-purple" onclick="liberarRodadaParaClientes('${id}')" ${rodada.status !== 'montagem' ? 'disabled' : ''}>🚀 Liberar p/ Clientes</button>
+                <button class="btn-green" onclick="alterarStatusRodada('${id}', 'aberto')" ${rodada.status !== 'fechado' ? 'disabled' : ''}>🔓 Reabrir</button>
+                <button class="btn-red" onclick="alterarStatusRodada('${id}', 'fechado')" ${rodada.status !== 'aberto' ? 'disabled' : ''}>🔒 Fechar</button>
+                <button class="btn-purple" onclick="apurarRodada('${id}')" ${(!todosComPlacar || rodada.status === 'encerrada' || rodada.status === 'montagem') ? 'disabled' : ''}>🏁 Apurar Rodada</button>
             </div>
         `;
         container.appendChild(div);
@@ -931,6 +1006,7 @@ function apurarRodada(rodadaId) {
         let registroHistorico = {
             id: rodada.id,
             numeroRodada: rodada.numeroRodada,
+            identificacao: rodada.identificacao || null,
             jogos: jogos,
             totalCartoes: cartoesDaRodada.length,
             encerradaEm: Date.now()
@@ -984,7 +1060,7 @@ function renderizarHistoricoRodadasVidente() {
         let resultado = r.vencedores && r.vencedores.length > 0
             ? `🏆 ${r.vencedores.length} vencedor(es) com ${r.vencedores[0].pontos} pts — R$ ${(r.valorPorVencedor || 0).toFixed(2).replace('.', ',')} cada`
             : `Nenhum vencedor`;
-        div.innerHTML = `<div><strong>Rodada #${r.numeroRodada}</strong></div><div style="font-size:12px; color:#475569;">${resultado} — ${r.totalCartoes} cartões</div>`;
+        div.innerHTML = `<div><strong>Rodada #${r.numeroRodada}${r.identificacao ? ' — ' + r.identificacao : ''}</strong></div><div style="font-size:12px; color:#475569;">${resultado} — ${r.totalCartoes} cartões</div>`;
         container.appendChild(div);
     });
 }
