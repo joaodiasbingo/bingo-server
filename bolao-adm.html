@@ -195,54 +195,6 @@ var db = firebase.database();
     </div>
 
     <section class="card">
-        <h2>🆕 Cadastrar Nova Rodada</h2>
-        <div class="form-group">
-            <label>Campeonato</label>
-            <select id="selCampeonatoRodada" onchange="atualizarGradeRodada()">
-                <option value="brasileirao">Brasileirão Série A</option>
-                <option value="premier">Premier League</option>
-                <option value="laliga">La Liga</option>
-                <option value="champions">Champions League (digitar manualmente)</option>
-            </select>
-        </div>
-
-        <div id="blocoSelecaoTextoRodada" class="grid-inputs" style="display:none;">
-            <div class="form-group">
-                <label>Time da Casa</label>
-                <select id="selRodadaTimeCasa"></select>
-                <input type="text" id="txtRodadaTimeCasaLivre" placeholder="Time da casa" style="display:none;">
-            </div>
-            <div class="form-group">
-                <label>Time Visitante</label>
-                <select id="selRodadaTimeFora"></select>
-                <input type="text" id="txtRodadaTimeForaLivre" placeholder="Time visitante" style="display:none;">
-            </div>
-        </div>
-
-        <div id="blocoSelecaoEscudosRodada" style="display:none;">
-            <div class="status-selecao-times">
-                <div>🏠 Casa: <strong id="txtStatusRodadaTimeCasa">-</strong></div>
-                <div>✈️ Visitante: <strong id="txtStatusRodadaTimeFora">-</strong></div>
-            </div>
-            <div id="gradeTimesRodada" class="grade-escudos"></div>
-        </div>
-
-        <button class="btn-blue" onclick="adicionarJogoNaRodada()">➕ Adicionar Jogo à Rodada</button>
-
-        <p style="font-size:12px; font-weight:600; color:#475569; margin-top:6px;">Jogos adicionados a esta rodada:</p>
-        <div id="listaJogosTempRodada" class="lista-linhas-compacta">
-            <p style="color:#94a3b8; font-size:12px; text-align:center;">Nenhum jogo adicionado ainda.</p>
-        </div>
-
-        <div class="form-group">
-            <label>Horário do 1º jogo da rodada (as apostas fecham exatamente nesse horário)</label>
-            <input type="datetime-local" id="inpHorarioPrimeiroJogo">
-        </div>
-        <div class="form-group">
-            <label>Preço do Cartão (R$) — vale para os palpites em TODOS os jogos da rodada</label>
-            <input type="text" id="inpPrecoCartaoRodada" placeholder="Ex: 10,00">
-        </div>
-    <section class="card">
         <h2>🆕 Abrir Nova Rodada</h2>
         <div class="form-group">
             <label>Identificação da Rodada (opcional — ex: "15ª Rodada Brasileirão")</label>
@@ -925,8 +877,9 @@ function renderizarListaRodadasAdmin() {
         let jogosHtml = jogosIds.map(jid => {
             let j = rodada.jogos[jid];
             let temPlacar = j.placarCasaFinal !== undefined && j.placarCasaFinal !== null;
+            let horarioTxt = j.dataHora ? `<div style="font-size:10px; color:#94a3b8;">🗓️ ${new Date(j.dataHora).toLocaleString('pt-BR')}</div>` : '';
             return `<div style="display:flex; justify-content:space-between; align-items:center; padding:6px; background:#fff; border-radius:6px; margin-bottom:4px; font-size:12px; gap:6px;">
-                <div>${j.timeCasa} x ${j.timeFora}</div>
+                <div>${j.timeCasa} x ${j.timeFora}${horarioTxt}</div>
                 ${temPlacar
                     ? `<strong>${j.placarCasaFinal} x ${j.placarForaFinal}</strong>`
                     : `<span style="display:flex; gap:4px; align-items:center;">

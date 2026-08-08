@@ -596,7 +596,8 @@ function renderizarRodadasAbertas() {
         let jogosIds = Object.keys(rodada.jogos || {});
         let jogosHtml = jogosIds.map(jid => {
             let j = rodada.jogos[jid];
-            return `<div class="jogo-mini-rodada">
+            let horarioTxt = j.dataHora ? `<div style="width:100%; text-align:center; font-size:10px; color:#94a3b8; margin-top:-4px;">🗓️ ${new Date(j.dataHora).toLocaleString('pt-BR')}</div>` : '';
+            return `<div class="jogo-mini-rodada" style="flex-wrap:wrap;">
                 <div style="display:flex; align-items:center; gap:6px;">
                     ${montarBrasaoTimeMini(j.timeCasa)}
                     <strong style="font-size:12px;">${j.timeCasa}</strong>
@@ -610,6 +611,7 @@ function renderizarRodadasAbertas() {
                     <strong style="font-size:12px;">${j.timeFora}</strong>
                     ${montarBrasaoTimeMini(j.timeFora)}
                 </div>
+                ${horarioTxt}
             </div>`;
         }).join('');
 
