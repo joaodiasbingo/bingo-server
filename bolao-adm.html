@@ -35,7 +35,14 @@
         .lista-linhas-compacta { max-height: 250px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
         .item-lista-admin { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-bottom: 1px solid #e2e8f0; font-size: 13px; background: #f8fafc; border-radius: 6px; gap: 8px; }
         .bolinha-time { width: 28px; height: 28px; border-radius: 50%; background: #3b82f6; color: white; font-size: 10px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-        .grade-escudos { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; max-height: 220px; overflow-y: auto; margin-top: 8px; padding: 4px; border: 1px solid #e2e8f0; border-radius: 8px; }
+        .grade-escudos { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; max-height: 260px; overflow-y: auto; margin-top: 8px; padding: 4px; border: 1px solid #e2e8f0; border-radius: 8px; }
+        .status-selecao-times { display: flex; justify-content: space-between; background: #f8fafc; border-radius: 8px; padding: 8px 12px; font-size: 13px; }
+        .card-escudo-selecionavel { position: relative; }
+        .card-escudo-selecionavel .badge-lado { position: absolute; top: -4px; right: -4px; font-size: 8px; font-weight: 800; padding: 1px 4px; border-radius: 6px; color: white; }
+        .card-escudo-selecionavel.selecionado-casa { border-color: #3b82f6; background: #eff6ff; }
+        .card-escudo-selecionavel.selecionado-casa .badge-lado { background: #3b82f6; }
+        .card-escudo-selecionavel.selecionado-fora { border-color: #ef4444; background: #fef2f2; }
+        .card-escudo-selecionavel.selecionado-fora .badge-lado { background: #ef4444; }
         .card-escudo-selecionavel { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 2px; border: 2px solid #e2e8f0; border-radius: 8px; cursor: pointer; background: #fff; transition: all 0.15s; }
         .card-escudo-selecionavel img { width: 32px; height: 32px; object-fit: contain; }
         .card-escudo-selecionavel span { font-size: 9px; text-align: center; line-height: 1.1; color: #475569; }
@@ -133,19 +140,26 @@ var db = firebase.database();
                 <option value="champions">Champions League (digitar manualmente)</option>
             </select>
         </div>
-        <div class="grid-inputs">
+        <div class="grid-inputs" id="blocoSelecaoTextoTimes">
             <div class="form-group">
                 <label>Time da Casa</label>
                 <select id="selTimeCasa"></select>
                 <input type="text" id="txtTimeCasaLivre" placeholder="Nome do time da casa" style="display:none;">
-                <div id="gradeTimeCasa" class="grade-escudos" style="display:none;"></div>
             </div>
             <div class="form-group">
                 <label>Time Visitante</label>
                 <select id="selTimeFora"></select>
                 <input type="text" id="txtTimeForaLivre" placeholder="Nome do time visitante" style="display:none;">
-                <div id="gradeTimeFora" class="grade-escudos" style="display:none;"></div>
             </div>
+        </div>
+
+        <div id="blocoSelecaoEscudos" style="display:none;">
+            <div class="status-selecao-times">
+                <div>🏠 Casa: <strong id="txtStatusTimeCasa">-</strong></div>
+                <div>✈️ Visitante: <strong id="txtStatusTimeFora">-</strong></div>
+            </div>
+            <p style="font-size:11px; color:#64748b; text-align:center; margin:4px 0;">Clique 1x no escudo para definir a CASA, 2x em outro escudo para definir o VISITANTE. Clique de novo num escudo já marcado para desmarcar.</p>
+            <div id="gradeTimesBrasileirao" class="grade-escudos"></div>
         </div>
         <div class="grid-inputs">
             <div class="form-group">
@@ -243,17 +257,19 @@ function atualizarListasTimes() {
     let selFora = document.getElementById('selTimeFora');
     let livreCasa = document.getElementById('txtTimeCasaLivre');
     let livreFora = document.getElementById('txtTimeForaLivre');
-    let gradeCasa = document.getElementById('gradeTimeCasa');
-    let gradeFora = document.getElementById('gradeTimeFora');
+    let blocoTexto = document.getElementById('blocoSelecaoTextoTimes');
+    let blocoEscudos = document.getElementById('blocoSelecaoEscudos');
+    let gradeUnica = document.getElementById('gradeTimesBrasileirao');
 
     selecionadoTimeCasa = null;
     selecionadoTimeFora = null;
+    atualizarStatusSelecao();
 
     if (campeonato === 'champions') {
+        blocoTexto.style.display = 'grid';
+        blocoEscudos.style.display = 'none';
         selCasa.style.display = 'none';
         selFora.style.display = 'none';
-        gradeCasa.style.display = 'none';
-        gradeFora.style.display = 'none';
         livreCasa.style.display = 'block';
         livreFora.style.display = 'block';
         return;
@@ -263,21 +279,16 @@ function atualizarListasTimes() {
     livreFora.style.display = 'none';
 
     if (campeonato === 'brasileirao') {
-        // Times com escudo: mostra a grade de escudos clicáveis em vez do menu de texto
-        selCasa.style.display = 'none';
-        selFora.style.display = 'none';
-        gradeCasa.style.display = 'grid';
-        gradeFora.style.display = 'grid';
-
-        let lista = TIMES.brasileirao;
-        gradeCasa.innerHTML = lista.map(t => montarCardEscudo(t, 'casa')).join('');
-        gradeFora.innerHTML = lista.map(t => montarCardEscudo(t, 'fora')).join('');
+        // Times com escudo: um único quadro, o ADM clica para definir Casa e depois Visitante
+        blocoTexto.style.display = 'none';
+        blocoEscudos.style.display = 'block';
+        gradeUnica.innerHTML = TIMES.brasileirao.map(t => montarCardEscudo(t)).join('');
         return;
     }
 
     // Campeonatos sem escudo ainda: menu de texto normal
-    gradeCasa.style.display = 'none';
-    gradeFora.style.display = 'none';
+    blocoTexto.style.display = 'grid';
+    blocoEscudos.style.display = 'none';
     selCasa.style.display = 'block';
     selFora.style.display = 'block';
 
@@ -286,22 +297,55 @@ function atualizarListasTimes() {
     selFora.innerHTML = lista.map(t => `<option value="${t}">${t}</option>`).join('');
 }
 
-function montarCardEscudo(nome, lado) {
+function montarCardEscudo(nome) {
     let escudo = ESCUDOS[nome] || '';
-    return `<div class="card-escudo-selecionavel" data-time="${nome}" data-lado="${lado}" onclick="selecionarTime('${nome.replace(/'/g, "\\'")}', '${lado}')">
+    return `<div class="card-escudo-selecionavel" data-time="${nome}" onclick="selecionarTimeUnico('${nome.replace(/'/g, "\\'")}')">
         <img src="${escudo}" alt="${nome}">
         <span>${nome}</span>
     </div>`;
 }
 
-function selecionarTime(nome, lado) {
-    if (lado === 'casa') selecionadoTimeCasa = nome;
-    else selecionadoTimeFora = nome;
+function selecionarTimeUnico(nome) {
+    if (selecionadoTimeCasa === nome) {
+        selecionadoTimeCasa = null;
+    } else if (selecionadoTimeFora === nome) {
+        selecionadoTimeFora = null;
+    } else if (selecionadoTimeCasa === null) {
+        selecionadoTimeCasa = nome;
+    } else if (selecionadoTimeFora === null) {
+        selecionadoTimeFora = nome;
+    } else {
+        alert("Você já selecionou os dois times! Clique num deles pra desmarcar antes de trocar.");
+        return;
+    }
+    atualizarVisualGradeUnica();
+    atualizarStatusSelecao();
+}
 
-    let grade = document.getElementById(lado === 'casa' ? 'gradeTimeCasa' : 'gradeTimeFora');
+function atualizarVisualGradeUnica() {
+    let grade = document.getElementById('gradeTimesBrasileirao');
+    if (!grade) return;
     grade.querySelectorAll('.card-escudo-selecionavel').forEach(card => {
-        card.classList.toggle('selecionado', card.dataset.time === nome);
+        let nomeCard = card.dataset.time;
+        card.classList.remove('selecionado-casa', 'selecionado-fora');
+        let badgeAntigo = card.querySelector('.badge-lado');
+        if (badgeAntigo) badgeAntigo.remove();
+
+        if (nomeCard === selecionadoTimeCasa) {
+            card.classList.add('selecionado-casa');
+            card.insertAdjacentHTML('beforeend', '<span class="badge-lado">CASA</span>');
+        } else if (nomeCard === selecionadoTimeFora) {
+            card.classList.add('selecionado-fora');
+            card.insertAdjacentHTML('beforeend', '<span class="badge-lado">FORA</span>');
+        }
     });
+}
+
+function atualizarStatusSelecao() {
+    let elCasa = document.getElementById('txtStatusTimeCasa');
+    let elFora = document.getElementById('txtStatusTimeFora');
+    if (elCasa) elCasa.innerText = selecionadoTimeCasa || '-';
+    if (elFora) elFora.innerText = selecionadoTimeFora || '-';
 }
 
 function iniciaisTime(nome) {
