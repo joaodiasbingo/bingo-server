@@ -29,6 +29,13 @@
         .placar-time .nome-time { font-weight: 700; font-size: 15px; margin-bottom: 6px; }
         .bolinha-time { width: 46px; height: 46px; border-radius: 50%; color: white; font-size: 13px; font-weight: 800; display: flex; align-items: center; justify-content: center; margin: 0 auto 6px; }
         .escudo-time { width: 46px; height: 46px; object-fit: contain; margin: 0 auto 6px; display: block; }
+        .btn-modo-bolao { flex: 1; padding: 12px; font-size: 13px; font-weight: 700; border: none; border-radius: 10px; cursor: pointer; background: #e2e8f0; color: #475569; }
+        .btn-modo-bolao.ativo { background: #f59e0b; color: white; }
+        .badge-status-jogo { font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 10px; text-transform: uppercase; }
+        .badge-aberto { background: #dcfce7; color: #15803d; }
+        .card-rodada-cliente { border: 2px solid #f59e0b; }
+        .jogo-mini-rodada { display: flex; justify-content: space-between; align-items: center; background: #f8fafc; border-radius: 8px; padding: 8px; margin-bottom: 6px; font-size: 13px; }
+        .jogo-mini-rodada .input-placar-mini { width: 45px !important; height: 40px; text-align: center; font-size: 16px !important; font-weight: bold; border: 2px solid #3b82f6 !important; border-radius: 8px !important; background: #eff6ff; }
         .input-placar { width: 70px !important; height: 55px; text-align: center; font-size: 24px !important; font-weight: bold; border: 2px solid #3b82f6 !important; border-radius: 10px !important; background: #eff6ff; margin: 0 auto; }
         .vs { font-weight: 800; color: #94a3b8; font-size: 18px; }
         .pote-destaque { background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #78350f; border-radius: 12px; padding: 18px; text-align: center; }
@@ -112,9 +119,29 @@ var db = firebase.database();
     <h2 style="font-size:1.1rem; color:#111; text-transform:uppercase;">Bolão Esportivo</h2>
 </div>
 
-<div style="text-align:center; background:#fef3c7; border:1px solid #f59e0b; color:#92400e; padding:6px 14px; border-radius:20px; font-size:13px; font-weight:700; margin-bottom:15px;">
-    🪰 Modo: Acertou na Mosca
+<div style="display:flex; gap:10px; width:100%; max-width:600px; margin-bottom:15px;">
+    <button id="btnModoMosca" class="btn-modo-bolao ativo" onclick="trocarModoBolao('mosca')">🪰 Acertou na Mosca</button>
+    <button id="btnModoRodada" class="btn-modo-bolao" onclick="trocarModoBolao('rodada')">🔮 Vidente da Rodada</button>
 </div>
+
+<section class="card" style="background:#eff6ff; border:1px solid #bfdbfe; width:100%; max-width:600px;">
+    <h2>💳 Meus Créditos</h2>
+    <div class="contador-bilhetes" style="background:#dbeafe; border-color:#93c5fd; color:#1e3a8a;">
+        Saldo atual: <span id="txtSaldoCreditos">R$ 0,00</span>
+    </div>
+    <div class="form-group">
+        <label>Nome Completo</label>
+        <input type="text" id="cliNome" placeholder="Ex: João Silva" onblur="salvarIdentificacaoCliente()">
+    </div>
+    <div class="form-group">
+        <label>Telefone / WhatsApp</label>
+        <input type="text" id="cliTelefone" placeholder="Ex: 92999999999" onblur="atualizarListenerSaldo()">
+    </div>
+    <p style="font-size:12px; color:#64748b; text-align:center;">O saldo de créditos é único, válido tanto para o Bingo quanto para o Bolão.</p>
+    <a href="index.html" class="btn-blue" style="text-align:center; text-decoration:none; display:block;">🔙 Retornar para Comprar Créditos</a>
+</section>
+
+<div id="secaoModoMosca">
 
 <div id="blocoVencedoresBolao" class="card" style="display:none; text-align:center; background:#fffbeb; border:2px solid #f59e0b; width:100%; max-width:600px;">
     <img src="boneco_taca.png" alt="Vencedor" style="width:130px; height:auto; margin:0 auto;">
@@ -133,23 +160,6 @@ var db = firebase.database();
         <div class="valor" id="txtPoteAtual">R$ 0,00</div>
     </div>
 
-    <section class="card" style="background:#eff6ff; border:1px solid #bfdbfe;">
-        <h2>💳 Meus Créditos</h2>
-        <div class="contador-bilhetes" style="background:#dbeafe; border-color:#93c5fd; color:#1e3a8a;">
-            Saldo atual: <span id="txtSaldoCreditos">R$ 0,00</span>
-        </div>
-        <div class="form-group">
-            <label>Nome Completo</label>
-            <input type="text" id="cliNome" placeholder="Ex: João Silva" onblur="salvarIdentificacaoCliente()">
-        </div>
-        <div class="form-group">
-            <label>Telefone / WhatsApp</label>
-            <input type="text" id="cliTelefone" placeholder="Ex: 92999999999" onblur="atualizarListenerSaldo()">
-        </div>
-        <p style="font-size:12px; color:#64748b; text-align:center;">O saldo de créditos é único, válido tanto para o Bingo quanto para o Bolão.</p>
-        <a href="index.html" class="btn-blue" style="text-align:center; text-decoration:none; display:block;">🔙 Retornar para Comprar Créditos</a>
-    </section>
-
     <section class="card">
         <h2>⚽ Jogos Abertos para Aposta (<span id="totalJogosAbertos">0</span>)</h2>
         <div id="listaJogosCliente" style="display:flex; flex-direction:column; gap:16px;"></div>
@@ -159,6 +169,30 @@ var db = firebase.database();
         <h2>📋 Meus Palpites</h2>
         <div class="lista-linhas-compacta" id="listaMeusPalpites">
             <p style="color:#94a3b8; font-size:13px; text-align:center;">Você ainda não fez nenhum palpite.</p>
+        </div>
+    </section>
+</div>
+
+</div>
+
+<div id="secaoModoRodada" style="display:none; flex-direction:column; width:100%; max-width:600px; align-items:center;">
+
+    <div id="blocoVencedoresRodada" class="card" style="display:none; text-align:center; background:#fffbeb; border:2px solid #f59e0b; width:100%;">
+        <img src="boneco_taca.png" alt="Vencedor" style="width:130px; height:auto; margin:0 auto;">
+        <h2 style="border:none; justify-content:center;">🏆 Últimas Rodadas Encerradas!</h2>
+        <div id="listaVencedoresRodada" style="display:flex; flex-direction:column; gap:10px;"></div>
+    </div>
+
+    <div id="telaBloqueioRodada" class="alerta-bloqueio" style="display:none;">
+        ⏳ Nenhuma rodada disponível para aposta no momento. Volte em breve!
+    </div>
+
+    <div id="listaRodadasCliente" style="display:flex; flex-direction:column; gap:16px; width:100%;"></div>
+
+    <section class="card">
+        <h2>📋 Meus Cartões</h2>
+        <div class="lista-linhas-compacta" id="listaMeusCartoesRodada">
+            <p style="color:#94a3b8; font-size:13px; text-align:center;">Você ainda não comprou nenhum cartão.</p>
         </div>
     </section>
 </div>
@@ -498,6 +532,248 @@ function salvarBilheteWhatsapp(d) {
         `🕒 Emitido em: ${new Date().toLocaleString('pt-BR')}\n\n` +
         `Guarde este código para consultar seu palpite!`;
     window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, '_blank');
+}
+
+// ============================================================
+// TROCA DE MODO
+// ============================================================
+function trocarModoBolao(modo) {
+    document.getElementById('secaoModoMosca').style.display = modo === 'mosca' ? 'block' : 'none';
+    document.getElementById('secaoModoRodada').style.display = modo === 'rodada' ? 'flex' : 'none';
+    document.getElementById('btnModoMosca').classList.toggle('ativo', modo === 'mosca');
+    document.getElementById('btnModoRodada').classList.toggle('ativo', modo === 'rodada');
+}
+
+// ============================================================
+// VIDENTE DA RODADA
+// ============================================================
+let todasRodadasCliente = {};
+let meusCartoesRodada = [];
+
+db.ref('bolaoRodada/rodadas').on('value', snap => {
+    todasRodadasCliente = snap.val() || {};
+    renderizarRodadasAbertas();
+});
+
+db.ref('bolaoRodada/cartoes').on('value', snap => {
+    meusCartoesRodada = [];
+    snap.forEach(c => { let v = c.val(); if (v) { v._chave = c.key; meusCartoesRodada.push(v); } });
+    renderizarRodadasAbertas();
+    renderizarMeusCartoesRodada();
+});
+
+db.ref('bolaoRodada/historicoRodadas').on('value', snap => {
+    renderizarVencedoresRodada(snap.val() || {});
+});
+
+function rodadaEstaNoPrazo(rodada) {
+    return rodada.status === 'aberto' && Date.now() < rodada.prazoFinal;
+}
+
+function renderizarRodadasAbertas() {
+    let ids = Object.keys(todasRodadasCliente).filter(id => rodadaEstaNoPrazo(todasRodadasCliente[id]));
+    let telaBloqueio = document.getElementById('telaBloqueioRodada');
+    let container = document.getElementById('listaRodadasCliente');
+
+    if (ids.length === 0) {
+        telaBloqueio.style.display = 'block';
+        container.innerHTML = '';
+        return;
+    }
+    telaBloqueio.style.display = 'none';
+
+    ids.sort((a, b) => (todasRodadasCliente[a].numeroRodada || 0) - (todasRodadasCliente[b].numeroRodada || 0));
+
+    container.innerHTML = "";
+    ids.forEach(id => {
+        let rodada = todasRodadasCliente[id];
+        let telAtual = normalizarTelefone(document.getElementById('cliTelefone').value);
+        let jaComprei = meusCartoesRodada.filter(c => c.rodadaId == id && (!telAtual || normalizarTelefone(c.telefone) === telAtual)).length;
+
+        let jogosIds = Object.keys(rodada.jogos || {});
+        let jogosHtml = jogosIds.map(jid => {
+            let j = rodada.jogos[jid];
+            return `<div class="jogo-mini-rodada">
+                <div style="display:flex; align-items:center; gap:6px;">
+                    ${montarBrasaoTimeMini(j.timeCasa)}
+                    <strong style="font-size:12px;">${j.timeCasa}</strong>
+                </div>
+                <div style="display:flex; gap:4px; align-items:center;">
+                    <input type="number" id="rpc-${id}-${jid}" class="input-placar-mini" min="0" placeholder="0">
+                    <span style="font-weight:800; color:#94a3b8;">x</span>
+                    <input type="number" id="rpf-${id}-${jid}" class="input-placar-mini" min="0" placeholder="0">
+                </div>
+                <div style="display:flex; align-items:center; gap:6px;">
+                    <strong style="font-size:12px;">${j.timeFora}</strong>
+                    ${montarBrasaoTimeMini(j.timeFora)}
+                </div>
+            </div>`;
+        }).join('');
+
+        let div = document.createElement('div');
+        div.className = "card card-rodada-cliente";
+        div.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <strong>Rodada #${rodada.numeroRodada}</strong>
+                <span class="badge-status-jogo badge-aberto">ABERTA</span>
+            </div>
+            <div style="font-size:12px; color:#b45309; font-weight:700; text-align:center;">⏰ Prazo final: ${new Date(rodada.prazoFinal).toLocaleString('pt-BR')}</div>
+            ${jogosHtml}
+            <button class="btn-green" onclick="comprarCartaoRodada('${id}')">🔮 Confirmar Cartão (R$ ${(parseFloat(rodada.precoCartao) || 0).toFixed(2).replace('.', ',')})</button>
+            <p style="font-size:11px; color:#64748b; text-align:center;">Você já tem ${jaComprei} de ${LIMITE_PALPITES_POR_TELEFONE} cartões nesta rodada.</p>
+            <div id="blocoBilheteRodada-${id}" class="bilhete" style="display:none;"></div>
+        `;
+        container.appendChild(div);
+    });
+}
+
+function montarBrasaoTimeMini(nome) {
+    if (ESCUDOS[nome]) return `<img src="${ESCUDOS[nome]}" style="width:26px; height:26px; object-fit:contain;" alt="${nome}">`;
+    return `<div class="bolinha-time" style="width:26px; height:26px; font-size:9px; background:${corDoTime(nome)}; margin:0;">${iniciaisTime(nome)}</div>`;
+}
+
+function comprarCartaoRodada(rodadaId) {
+    let rodada = todasRodadasCliente[rodadaId];
+    if (!rodada || !rodadaEstaNoPrazo(rodada)) return alert("🔒 O prazo de apostas para esta rodada já encerrou!");
+
+    let nome = document.getElementById('cliNome').value.trim();
+    let tel = document.getElementById('cliTelefone').value.trim();
+    let telNormalizado = normalizarTelefone(tel);
+    let preco = parseFloat(rodada.precoCartao) || 0;
+
+    if (!nome) return alert("Preencha seu nome!");
+    if (!telNormalizado || telNormalizado.length < 8) return alert("Informe um telefone válido (com DDD)!");
+
+    let jogosIds = Object.keys(rodada.jogos || {});
+    let palpites = {};
+    for (let jid of jogosIds) {
+        let pc = parseInt(document.getElementById(`rpc-${rodadaId}-${jid}`).value);
+        let pf = parseInt(document.getElementById(`rpf-${rodadaId}-${jid}`).value);
+        if (isNaN(pc) || isNaN(pf) || pc < 0 || pf < 0) {
+            return alert(`Preencha o placar de todos os ${jogosIds.length} jogos da rodada antes de confirmar!`);
+        }
+        palpites[jid] = { placarCasa: pc, placarFora: pf };
+    }
+
+    let jaComprei = meusCartoesRodada.filter(c => c.rodadaId == rodadaId && normalizarTelefone(c.telefone) === telNormalizado).length;
+    if (jaComprei >= LIMITE_PALPITES_POR_TELEFONE) return alert(`⚠️ Você já atingiu o limite de ${LIMITE_PALPITES_POR_TELEFONE} cartões nesta rodada!`);
+
+    if (telNormalizado !== listenerSaldoAtivo) atualizarListenerSaldo();
+
+    if (saldoCreditosAtual < preco) {
+        return alert(`⚠️ Saldo insuficiente! Este cartão custa R$ ${preco.toFixed(2).replace('.', ',')} e seu saldo é R$ ${saldoCreditosAtual.toFixed(2).replace('.', ',')}. Adicione créditos na página de entrada antes de apostar.`);
+    }
+
+    let novoSaldo = saldoCreditosAtual - preco;
+    let valorPote = preco * 0.8;
+    let valorFundo = preco * 0.1;
+    let valorOrganizador = preco * 0.1;
+
+    db.ref('creditos/' + telNormalizado).set(novoSaldo);
+    let refCartao = db.ref('bolaoRodada/cartoes').push();
+    refCartao.set({
+        rodadaId: rodadaId,
+        nome: nome,
+        telefone: tel,
+        palpites: palpites,
+        valor: preco,
+        timestamp: Date.now()
+    });
+    db.ref('bolaoRodada/potRodada/' + rodadaId).transaction(v => (parseFloat(v) || 0) + valorPote);
+    db.ref('bolaoRodada/fundoCampeonato').transaction(v => (parseFloat(v) || 0) + valorFundo);
+    db.ref('bolaoRodadaVendas').push({
+        rodadaId: rodadaId,
+        nome: nome,
+        telefone: tel,
+        valor: preco,
+        valorOrganizador: valorOrganizador,
+        timestamp: Date.now()
+    });
+
+    db.ref('bolaoRodada/contadorCartoes/' + rodadaId).transaction(v => (parseInt(v) || 0) + 1).then(resultado => {
+        let numeroCartao = resultado.snapshot.val();
+        let codigo = `JDSP-VDR-R${rodada.numeroRodada || '?'}-${String(numeroCartao).padStart(4, '0')}`;
+        exibirBilheteRodada(rodadaId, {
+            codigo: codigo,
+            numeroRodada: rodada.numeroRodada,
+            nome: nome,
+            valor: preco,
+            qtdJogos: jogosIds.length
+        });
+    });
+
+    jogosIds.forEach(jid => {
+        document.getElementById(`rpc-${rodadaId}-${jid}`).value = '';
+        document.getElementById(`rpf-${rodadaId}-${jid}`).value = '';
+    });
+}
+
+function exibirBilheteRodada(rodadaId, dados) {
+    let bloco = document.getElementById('blocoBilheteRodada-' + rodadaId);
+    if (!bloco) return;
+    bloco.innerHTML = `
+        <div class="bilhete-topo">
+            <div class="bilhete-casa">JD SHOW DE PRÊMIOS — BOLÃO ESPORTIVO</div>
+            <div class="bilhete-codigo">${dados.codigo}</div>
+        </div>
+        <div class="bilhete-linha"><span>Modo:</span><strong>🔮 Vidente da Rodada</strong></div>
+        <div class="bilhete-linha"><span>Rodada:</span><strong>#${dados.numeroRodada}</strong></div>
+        <div class="bilhete-linha"><span>Jogos no cartão:</span><strong>${dados.qtdJogos}</strong></div>
+        <div class="bilhete-linha"><span>Apostador:</span><strong>${dados.nome}</strong></div>
+        <div class="bilhete-linha"><span>Valor pago:</span><strong>R$ ${dados.valor.toFixed(2).replace('.', ',')}</strong></div>
+        <div class="bilhete-linha"><span>Emitido em:</span><strong>${new Date().toLocaleString('pt-BR')}</strong></div>
+    `;
+    bloco.style.display = 'block';
+    bloco.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function renderizarMeusCartoesRodada() {
+    let container = document.getElementById('listaMeusCartoesRodada');
+    if (!container) return;
+    let telAtual = normalizarTelefone(document.getElementById('cliTelefone').value);
+    let meus = meusCartoesRodada.filter(c => !telAtual || normalizarTelefone(c.telefone) === telAtual);
+
+    container.innerHTML = "";
+    if (meus.length === 0) {
+        container.innerHTML = `<p style="color:#94a3b8; font-size:13px; text-align:center;">Você ainda não comprou nenhum cartão.</p>`;
+        return;
+    }
+    meus.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+    meus.forEach(c => {
+        let rodada = todasRodadasCliente[c.rodadaId];
+        let numeroRodada = rodada ? rodada.numeroRodada : '?';
+        let pontosTxt = (c.pontos !== undefined && c.pontos !== null) ? `${c.pontos} pontos` : 'aguardando apuração';
+        let div = document.createElement('div');
+        div.className = "item-palpite";
+        div.innerHTML = `<div><strong>Rodada #${numeroRodada}</strong><br><small>${pontosTxt}</small></div>`;
+        container.appendChild(div);
+    });
+}
+
+function renderizarVencedoresRodada(historico) {
+    let bloco = document.getElementById('blocoVencedoresRodada');
+    let ids = Object.keys(historico).filter(id => (historico[id].vencedores || []).length > 0);
+    if (ids.length === 0) { bloco.style.display = 'none'; return; }
+
+    ids.sort((a, b) => (historico[b].encerradaEm || 0) - (historico[a].encerradaEm || 0));
+    ids = ids.slice(0, 3);
+
+    let container = document.getElementById('listaVencedoresRodada');
+    container.innerHTML = "";
+    ids.forEach(id => {
+        let r = historico[id];
+        let bloco2 = document.createElement('div');
+        bloco2.innerHTML = `<div style="font-weight:bold;">Rodada #${r.numeroRodada}</div>`;
+        (r.vencedores || []).forEach(v => {
+            let linha = document.createElement('div');
+            linha.className = "item-palpite";
+            linha.innerHTML = `<div><strong>🎉 ${v.nome}</strong> — ${v.pontos} pts</div>` +
+                (r.valorPorVencedor ? `<div>R$ ${r.valorPorVencedor.toFixed(2).replace('.', ',')}</div>` : '');
+            bloco2.appendChild(linha);
+        });
+        container.appendChild(bloco2);
+    });
+    bloco.style.display = 'flex';
 }
 </script>
 </body>

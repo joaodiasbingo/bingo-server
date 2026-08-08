@@ -187,6 +187,74 @@ var db = firebase.database();
             <p style="color:#94a3b8; font-size:13px; text-align:center;">Nenhum jogo encerrado ainda.</p>
         </div>
     </section>
+
+    <hr style="border:0; border-top:3px solid #f59e0b; margin:15px 0;">
+    <div style="text-align:center; font-weight:800; color:#92400e; margin-bottom:10px; font-size:16px;">🔮 VIDENTE DA RODADA</div>
+
+    <section class="card">
+        <h2>🆕 Cadastrar Nova Rodada</h2>
+        <div class="form-group">
+            <label>Campeonato</label>
+            <select id="selCampeonatoRodada" onchange="atualizarGradeRodada()">
+                <option value="brasileirao">Brasileirão Série A</option>
+                <option value="premier">Premier League</option>
+                <option value="laliga">La Liga</option>
+                <option value="champions">Champions League (digitar manualmente)</option>
+            </select>
+        </div>
+
+        <div id="blocoSelecaoTextoRodada" class="grid-inputs" style="display:none;">
+            <div class="form-group">
+                <label>Time da Casa</label>
+                <select id="selRodadaTimeCasa"></select>
+                <input type="text" id="txtRodadaTimeCasaLivre" placeholder="Time da casa" style="display:none;">
+            </div>
+            <div class="form-group">
+                <label>Time Visitante</label>
+                <select id="selRodadaTimeFora"></select>
+                <input type="text" id="txtRodadaTimeForaLivre" placeholder="Time visitante" style="display:none;">
+            </div>
+        </div>
+
+        <div id="blocoSelecaoEscudosRodada" style="display:none;">
+            <div class="status-selecao-times">
+                <div>🏠 Casa: <strong id="txtStatusRodadaTimeCasa">-</strong></div>
+                <div>✈️ Visitante: <strong id="txtStatusRodadaTimeFora">-</strong></div>
+            </div>
+            <div id="gradeTimesRodada" class="grade-escudos"></div>
+        </div>
+
+        <button class="btn-blue" onclick="adicionarJogoNaRodada()">➕ Adicionar Jogo à Rodada</button>
+
+        <p style="font-size:12px; font-weight:600; color:#475569; margin-top:6px;">Jogos adicionados a esta rodada:</p>
+        <div id="listaJogosTempRodada" class="lista-linhas-compacta">
+            <p style="color:#94a3b8; font-size:12px; text-align:center;">Nenhum jogo adicionado ainda.</p>
+        </div>
+
+        <div class="form-group">
+            <label>Horário do 1º jogo da rodada (as apostas fecham exatamente nesse horário)</label>
+            <input type="datetime-local" id="inpHorarioPrimeiroJogo">
+        </div>
+        <div class="form-group">
+            <label>Preço do Cartão (R$) — vale para os palpites em TODOS os jogos da rodada</label>
+            <input type="text" id="inpPrecoCartaoRodada" placeholder="Ex: 10,00">
+        </div>
+        <button class="btn-green" onclick="finalizarCriacaoRodada()">🆕 Criar Rodada</button>
+    </section>
+
+    <section class="card">
+        <h2>📋 Rodadas Cadastradas (<span id="totalRodadasCadastradas">0</span>)</h2>
+        <div id="listaRodadasAdmin" style="display:flex; flex-direction:column; gap:10px;">
+            <p style="color:#94a3b8; font-size:13px; text-align:center;">Nenhuma rodada cadastrada ainda.</p>
+        </div>
+    </section>
+
+    <section class="card">
+        <h2>📅 Histórico de Rodadas Encerradas</h2>
+        <div class="lista-linhas-compacta" id="listaHistoricoRodadasVidente">
+            <p style="color:#94a3b8; font-size:13px; text-align:center;">Nenhuma rodada encerrada ainda.</p>
+        </div>
+    </section>
 </div>
 
 <script>
@@ -248,6 +316,9 @@ function liberarPainelAdmin() {
         atualizarListasTimes();
         renderizarListaJogos();
         renderizarHistorico();
+        atualizarGradeRodada();
+        renderizarListaRodadasAdmin();
+        renderizarHistoricoRodadasVidente();
     } else alert("Senha incorreta!");
 }
 
@@ -577,6 +648,342 @@ function lancarPlacarFinal(jogoId) {
             db.ref('bolao/jogos/' + jogoId + '/status').set('encerrado');
             alert("🔄 Ninguém acertou o placar exato. O pote continua acumulado para o próximo jogo!");
         }
+    });
+}
+// ============================================================
+// VIDENTE DA RODADA
+// ============================================================
+let jogosNovaRodada = [];
+let rodadaSelTimeCasa = null;
+let rodadaSelTimeFora = null;
+let todasRodadasVidente = {};
+let todosCartoesVidente = [];
+let historicoRodadasVidente = {};
+
+function atualizarGradeRodada() {
+    let campeonato = document.getElementById('selCampeonatoRodada').value;
+    let blocoTexto = document.getElementById('blocoSelecaoTextoRodada');
+    let blocoEscudos = document.getElementById('blocoSelecaoEscudosRodada');
+    let selCasa = document.getElementById('selRodadaTimeCasa');
+    let selFora = document.getElementById('selRodadaTimeFora');
+    let livreCasa = document.getElementById('txtRodadaTimeCasaLivre');
+    let livreFora = document.getElementById('txtRodadaTimeForaLivre');
+
+    rodadaSelTimeCasa = null;
+    rodadaSelTimeFora = null;
+    atualizarStatusRodadaSelecao();
+
+    if (campeonato === 'champions') {
+        blocoTexto.style.display = 'grid';
+        blocoEscudos.style.display = 'none';
+        selCasa.style.display = 'none';
+        selFora.style.display = 'none';
+        livreCasa.style.display = 'block';
+        livreFora.style.display = 'block';
+        return;
+    }
+
+    livreCasa.style.display = 'none';
+    livreFora.style.display = 'none';
+
+    if (campeonato === 'brasileirao') {
+        blocoTexto.style.display = 'none';
+        blocoEscudos.style.display = 'block';
+        document.getElementById('gradeTimesRodada').innerHTML = TIMES.brasileirao.map(t => montarCardEscudoRodada(t)).join('');
+        return;
+    }
+
+    blocoTexto.style.display = 'grid';
+    blocoEscudos.style.display = 'none';
+    selCasa.style.display = 'block';
+    selFora.style.display = 'block';
+    let lista = TIMES[campeonato] || [];
+    selCasa.innerHTML = lista.map(t => `<option value="${t}">${t}</option>`).join('');
+    selFora.innerHTML = lista.map(t => `<option value="${t}">${t}</option>`).join('');
+}
+
+function montarCardEscudoRodada(nome) {
+    let escudo = ESCUDOS[nome] || '';
+    return `<div class="card-escudo-selecionavel" data-time="${nome}" onclick="selecionarTimeRodada('${nome.replace(/'/g, "\\'")}')">
+        <img src="${escudo}" alt="${nome}">
+        <span>${nome}</span>
+    </div>`;
+}
+
+function selecionarTimeRodada(nome) {
+    if (rodadaSelTimeCasa === nome) rodadaSelTimeCasa = null;
+    else if (rodadaSelTimeFora === nome) rodadaSelTimeFora = null;
+    else if (rodadaSelTimeCasa === null) rodadaSelTimeCasa = nome;
+    else if (rodadaSelTimeFora === null) rodadaSelTimeFora = nome;
+    else { alert("Você já selecionou os dois times deste jogo! Clique num deles pra desmarcar antes de trocar."); return; }
+
+    let grade = document.getElementById('gradeTimesRodada');
+    grade.querySelectorAll('.card-escudo-selecionavel').forEach(card => {
+        let n = card.dataset.time;
+        card.classList.remove('selecionado-casa', 'selecionado-fora');
+        let b = card.querySelector('.badge-lado');
+        if (b) b.remove();
+        if (n === rodadaSelTimeCasa) { card.classList.add('selecionado-casa'); card.insertAdjacentHTML('beforeend', '<span class="badge-lado">CASA</span>'); }
+        else if (n === rodadaSelTimeFora) { card.classList.add('selecionado-fora'); card.insertAdjacentHTML('beforeend', '<span class="badge-lado">FORA</span>'); }
+    });
+    atualizarStatusRodadaSelecao();
+}
+
+function atualizarStatusRodadaSelecao() {
+    let c = document.getElementById('txtStatusRodadaTimeCasa');
+    let f = document.getElementById('txtStatusRodadaTimeFora');
+    if (c) c.innerText = rodadaSelTimeCasa || '-';
+    if (f) f.innerText = rodadaSelTimeFora || '-';
+}
+
+function adicionarJogoNaRodada() {
+    let campeonato = document.getElementById('selCampeonatoRodada').value;
+    let timeCasa, timeFora;
+    if (campeonato === 'champions') {
+        timeCasa = document.getElementById('txtRodadaTimeCasaLivre').value.trim();
+        timeFora = document.getElementById('txtRodadaTimeForaLivre').value.trim();
+    } else if (campeonato === 'brasileirao') {
+        timeCasa = rodadaSelTimeCasa;
+        timeFora = rodadaSelTimeFora;
+    } else {
+        timeCasa = document.getElementById('selRodadaTimeCasa').value;
+        timeFora = document.getElementById('selRodadaTimeFora').value;
+    }
+
+    if (!timeCasa || !timeFora) return alert("Selecione (ou digite) os dois times deste jogo!");
+    if (timeCasa === timeFora) return alert("Os times não podem ser iguais!");
+
+    jogosNovaRodada.push({ campeonato: campeonato, timeCasa: timeCasa, timeFora: timeFora });
+
+    rodadaSelTimeCasa = null;
+    rodadaSelTimeFora = null;
+    atualizarGradeRodada();
+    renderizarJogosTempRodada();
+}
+
+function renderizarJogosTempRodada() {
+    let container = document.getElementById('listaJogosTempRodada');
+    if (jogosNovaRodada.length === 0) {
+        container.innerHTML = `<p style="color:#94a3b8; font-size:12px; text-align:center;">Nenhum jogo adicionado ainda.</p>`;
+        return;
+    }
+    container.innerHTML = "";
+    jogosNovaRodada.forEach((j, i) => {
+        let div = document.createElement('div');
+        div.className = "item-lista-admin";
+        div.innerHTML = `<div>${j.timeCasa} x ${j.timeFora}</div>`;
+        let b = document.createElement('button');
+        b.innerText = "Remover";
+        b.style.cssText = "background:#ef4444;color:white;padding:4px 8px;font-size:11px;width:auto;";
+        b.onclick = () => { jogosNovaRodada.splice(i, 1); renderizarJogosTempRodada(); };
+        div.appendChild(b);
+        container.appendChild(div);
+    });
+}
+
+function finalizarCriacaoRodada() {
+    if (jogosNovaRodada.length === 0) return alert("Adicione ao menos 1 jogo à rodada!");
+    let horarioInput = document.getElementById('inpHorarioPrimeiroJogo').value;
+    if (!horarioInput) return alert("Informe o horário do 1º jogo da rodada!");
+    let prazoFinal = new Date(horarioInput).getTime();
+    if (isNaN(prazoFinal)) return alert("Horário inválido!");
+
+    let preco = parseFloat(document.getElementById('inpPrecoCartaoRodada').value.replace(',', '.'));
+    if (isNaN(preco) || preco <= 0) return alert("Informe um preço de cartão válido!");
+
+    let novoId = Date.now();
+
+    db.ref('bolaoRodada/proximoNumeroRodada').transaction(v => (parseInt(v) || 0) + 1).then(resultado => {
+        let numeroRodada = resultado.snapshot.val();
+        let jogosObj = {};
+        jogosNovaRodada.forEach((j, i) => { jogosObj['j' + i] = j; });
+
+        db.ref('bolaoRodada/rodadas/' + novoId).set({
+            id: novoId,
+            numeroRodada: numeroRodada,
+            precoCartao: preco,
+            prazoFinal: prazoFinal,
+            status: 'fechado',
+            jogos: jogosObj
+        }).then(() => {
+            alert(`✅ Rodada #${numeroRodada} criada com ${jogosNovaRodada.length} jogo(s)! Apostas fecham em: ${new Date(prazoFinal).toLocaleString('pt-BR')}. Clique em "Abrir" na lista abaixo quando quiser liberar as apostas.`);
+            jogosNovaRodada = [];
+            renderizarJogosTempRodada();
+            document.getElementById('inpPrecoCartaoRodada').value = '';
+            document.getElementById('inpHorarioPrimeiroJogo').value = '';
+        });
+    });
+}
+
+db.ref('bolaoRodada/rodadas').on('value', snap => {
+    todasRodadasVidente = snap.val() || {};
+    if (eOrganizadorAutenticado) renderizarListaRodadasAdmin();
+});
+
+db.ref('bolaoRodada/cartoes').on('value', snap => {
+    todosCartoesVidente = [];
+    snap.forEach(c => { let v = c.val(); if (v) { v._chave = c.key; todosCartoesVidente.push(v); } });
+    if (eOrganizadorAutenticado) renderizarListaRodadasAdmin();
+});
+
+db.ref('bolaoRodada/historicoRodadas').on('value', snap => {
+    historicoRodadasVidente = snap.val() || {};
+    if (eOrganizadorAutenticado) renderizarHistoricoRodadasVidente();
+});
+
+function renderizarListaRodadasAdmin() {
+    let container = document.getElementById('listaRodadasAdmin');
+    let ids = Object.keys(todasRodadasVidente).sort((a, b) => b - a);
+    document.getElementById('totalRodadasCadastradas').innerText = ids.length;
+    if (ids.length === 0) {
+        container.innerHTML = `<p style="color:#94a3b8; font-size:13px; text-align:center;">Nenhuma rodada cadastrada ainda.</p>`;
+        return;
+    }
+    container.innerHTML = "";
+    ids.forEach(id => {
+        let rodada = todasRodadasVidente[id];
+        let cartoesDaRodada = todosCartoesVidente.filter(c => c.rodadaId == id);
+        let statusClasse = rodada.status === 'aberto' ? 'badge-aberto' : (rodada.status === 'encerrada' ? 'badge-encerrado' : 'badge-fechado');
+        let statusTexto = rodada.status === 'aberto' ? 'ABERTA' : (rodada.status === 'encerrada' ? 'ENCERRADA' : 'FECHADA');
+
+        let jogosIds = Object.keys(rodada.jogos || {});
+        let jogosHtml = jogosIds.map(jid => {
+            let j = rodada.jogos[jid];
+            let temPlacar = j.placarCasaFinal !== undefined && j.placarCasaFinal !== null;
+            return `<div style="display:flex; justify-content:space-between; align-items:center; padding:6px; background:#fff; border-radius:6px; margin-bottom:4px; font-size:12px; gap:6px;">
+                <div>${j.timeCasa} x ${j.timeFora}</div>
+                ${temPlacar
+                    ? `<strong>${j.placarCasaFinal} x ${j.placarForaFinal}</strong>`
+                    : `<span style="display:flex; gap:4px; align-items:center;">
+                        <input type="number" id="pc-${id}-${jid}" style="width:45px; padding:4px;" min="0">
+                        x
+                        <input type="number" id="pf-${id}-${jid}" style="width:45px; padding:4px;" min="0">
+                        <button class="btn-blue" style="padding:4px 6px; font-size:10px; width:auto;" onclick="lancarPlacarJogoRodada('${id}','${jid}')">OK</button>
+                       </span>`
+                }
+            </div>`;
+        }).join('');
+
+        let todosComPlacar = jogosIds.length > 0 && jogosIds.every(jid => rodada.jogos[jid].placarCasaFinal !== undefined && rodada.jogos[jid].placarCasaFinal !== null);
+
+        let div = document.createElement('div');
+        div.className = "jogo-linha-admin";
+        div.innerHTML = `
+            <div class="topo-jogo">
+                <div><strong>Rodada #${rodada.numeroRodada}</strong><br>
+                <small>Prazo: ${new Date(rodada.prazoFinal).toLocaleString('pt-BR')} — Cartão: R$ ${(parseFloat(rodada.precoCartao) || 0).toFixed(2).replace('.', ',')} — 🎫 ${cartoesDaRodada.length} cartões</small></div>
+                <span class="badge-status-jogo ${statusClasse}">${statusTexto}</span>
+            </div>
+            <div>${jogosHtml}</div>
+            <div class="acoes-jogo">
+                <button class="btn-green" onclick="alterarStatusRodada('${id}', 'aberto')" ${rodada.status === 'encerrada' ? 'disabled' : ''}>🔓 Abrir</button>
+                <button class="btn-red" onclick="alterarStatusRodada('${id}', 'fechado')" ${rodada.status === 'encerrada' ? 'disabled' : ''}>🔒 Fechar</button>
+                <button class="btn-purple" onclick="apurarRodada('${id}')" ${(!todosComPlacar || rodada.status === 'encerrada') ? 'disabled' : ''}>🏁 Apurar Rodada</button>
+            </div>
+        `;
+        container.appendChild(div);
+    });
+}
+
+function alterarStatusRodada(rodadaId, status) {
+    db.ref('bolaoRodada/rodadas/' + rodadaId + '/status').set(status);
+}
+
+function lancarPlacarJogoRodada(rodadaId, jogoId) {
+    let pc = parseInt(document.getElementById(`pc-${rodadaId}-${jogoId}`).value);
+    let pf = parseInt(document.getElementById(`pf-${rodadaId}-${jogoId}`).value);
+    if (isNaN(pc) || isNaN(pf)) return alert("Informe o placar dos dois times!");
+    db.ref(`bolaoRodada/rodadas/${rodadaId}/jogos/${jogoId}`).update({ placarCasaFinal: pc, placarForaFinal: pf });
+}
+
+function apurarRodada(rodadaId) {
+    let rodada = todasRodadasVidente[rodadaId];
+    if (!rodada) return;
+    if (!confirm(`Confirma a apuração da Rodada #${rodada.numeroRodada}? O sistema vai calcular a pontuação de todos os cartões, distribuir o prêmio entre os maiores pontuadores e encerrar a rodada. Essa ação não pode ser desfeita.`)) return;
+
+    let cartoesDaRodada = todosCartoesVidente.filter(c => c.rodadaId == rodadaId);
+    let jogos = rodada.jogos;
+
+    let cartoesComPontuacao = cartoesDaRodada.map(cartao => {
+        let pontos = 0;
+        Object.keys(jogos).forEach(jid => {
+            let jogo = jogos[jid];
+            let palpite = cartao.palpites && cartao.palpites[jid];
+            if (!palpite) return;
+            if (parseInt(palpite.placarCasa) === jogo.placarCasaFinal && parseInt(palpite.placarFora) === jogo.placarForaFinal) {
+                pontos += 3;
+            } else {
+                let resultadoReal = jogo.placarCasaFinal > jogo.placarForaFinal ? 'casa' : (jogo.placarForaFinal > jogo.placarCasaFinal ? 'fora' : 'empate');
+                let resultadoPalpite = palpite.placarCasa > palpite.placarFora ? 'casa' : (palpite.placarFora > palpite.placarCasa ? 'fora' : 'empate');
+                if (resultadoReal === resultadoPalpite) pontos += 1;
+            }
+        });
+        return Object.assign({}, cartao, { pontos: pontos });
+    });
+
+    let maiorPontuacao = cartoesComPontuacao.length > 0 ? Math.max(...cartoesComPontuacao.map(c => c.pontos)) : 0;
+    let vencedores = cartoesComPontuacao.filter(c => c.pontos === maiorPontuacao && maiorPontuacao > 0);
+
+    db.ref('bolaoRodada/potRodada/' + rodadaId).once('value').then(snapPote => {
+        let pote = parseFloat(snapPote.val()) || 0;
+        let registroHistorico = {
+            id: rodada.id,
+            numeroRodada: rodada.numeroRodada,
+            jogos: jogos,
+            totalCartoes: cartoesDaRodada.length,
+            encerradaEm: Date.now()
+        };
+
+        let promessasPontos = cartoesComPontuacao.map(c => db.ref('bolaoRodada/cartoes/' + c._chave + '/pontos').set(c.pontos));
+
+        if (vencedores.length > 0 && pote > 0) {
+            let valorPorVencedor = pote / vencedores.length;
+            registroHistorico.vencedores = vencedores.map(v => ({ nome: v.nome, telefone: v.telefone, pontos: v.pontos }));
+            registroHistorico.valorPorVencedor = valorPorVencedor;
+
+            let promessasCredito = vencedores.map(v => {
+                let tel = (v.telefone || '').replace(/\D/g, '');
+                return db.ref('creditos/' + tel).once('value').then(snapSaldo => {
+                    let saldoAtual = parseFloat(snapSaldo.val()) || 0;
+                    return db.ref('creditos/' + tel).set(saldoAtual + valorPorVencedor);
+                });
+            });
+
+            Promise.all(promessasPontos.concat(promessasCredito)).then(() => {
+                db.ref('bolaoRodada/historicoRodadas/' + rodada.id).set(registroHistorico);
+                db.ref('bolaoRodada/rodadas/' + rodadaId + '/status').set('encerrada');
+                alert(`🏆 Rodada apurada! ${vencedores.length} vencedor(es) com ${maiorPontuacao} pontos — R$ ${valorPorVencedor.toFixed(2).replace('.', ',')} creditado(s) para cada um.`);
+            });
+        } else {
+            Promise.all(promessasPontos).then(() => {
+                registroHistorico.vencedores = [];
+                db.ref('bolaoRodada/historicoRodadas/' + rodada.id).set(registroHistorico);
+                db.ref('bolaoRodada/rodadas/' + rodadaId + '/status').set('encerrada');
+                alert("Rodada apurada. Nenhum cartão pontuou (ou não havia cartões nesta rodada).");
+            });
+        }
+    });
+}
+
+function renderizarHistoricoRodadasVidente() {
+    let container = document.getElementById('listaHistoricoRodadasVidente');
+    let ids = Object.keys(historicoRodadasVidente).sort((a, b) => b - a);
+    if (ids.length === 0) {
+        container.innerHTML = `<p style="color:#94a3b8; font-size:13px; text-align:center;">Nenhuma rodada encerrada ainda.</p>`;
+        return;
+    }
+    container.innerHTML = "";
+    ids.forEach(id => {
+        let r = historicoRodadasVidente[id];
+        let div = document.createElement('div');
+        div.className = "item-lista-admin";
+        div.style.flexDirection = "column";
+        div.style.alignItems = "flex-start";
+        let resultado = r.vencedores && r.vencedores.length > 0
+            ? `🏆 ${r.vencedores.length} vencedor(es) com ${r.vencedores[0].pontos} pts — R$ ${(r.valorPorVencedor || 0).toFixed(2).replace('.', ',')} cada`
+            : `Nenhum vencedor`;
+        div.innerHTML = `<div><strong>Rodada #${r.numeroRodada}</strong></div><div style="font-size:12px; color:#475569;">${resultado} — ${r.totalCartoes} cartões</div>`;
+        container.appendChild(div);
     });
 }
 </script>
