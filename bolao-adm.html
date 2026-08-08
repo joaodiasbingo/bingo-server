@@ -270,6 +270,13 @@ var db = firebase.database();
             <p style="color:#94a3b8; font-size:13px; text-align:center;">Nenhuma rodada encerrada ainda.</p>
         </div>
     </section>
+
+    <hr style="border:0; border-top:3px solid #ef4444; margin:15px 0;">
+    <section class="card" style="background:#fef2f2; border:2px solid #ef4444;">
+        <h2 style="color:#991b1b;">⚠️ Zona de Perigo</h2>
+        <p style="font-size:12px; color:#7f1d1d;">Apaga TODOS os dados do Bolão Esportivo (jogos, rodadas, cartões, palpites, potes e históricos — tanto do Acertou na Mosca quanto do Vidente da Rodada). Não afeta o Bingo nem o saldo de créditos dos clientes.</p>
+        <button class="btn-red" onclick="zerarTudoDoBolao()">🗑️ Zerar Todos os Dados do Bolão</button>
+    </section>
 </div>
 
 <script>
@@ -474,11 +481,11 @@ db.ref('bolao/historicoJogos').on('value', snap => {
 
 function renderizarListaJogos() {
     let container = document.getElementById('listaJogosAdmin');
-    let ids = Object.keys(todosOsJogos).sort((a, b) => b - a);
+    let ids = Object.keys(todosOsJogos).filter(id => todosOsJogos[id].status !== 'encerrado').sort((a, b) => b - a);
     document.getElementById('totalJogosCadastrados').innerText = ids.length;
 
     if (ids.length === 0) {
-        container.innerHTML = `<p style="color:#94a3b8; font-size:13px; text-align:center;">Nenhum jogo cadastrado ainda.</p>`;
+        container.innerHTML = `<p style="color:#94a3b8; font-size:13px; text-align:center;">Nenhum jogo ativo no momento. Veja o histórico abaixo.</p>`;
         return;
     }
 
@@ -860,10 +867,10 @@ db.ref('bolaoRodada/historicoRodadas').on('value', snap => {
 
 function renderizarListaRodadasAdmin() {
     let container = document.getElementById('listaRodadasAdmin');
-    let ids = Object.keys(todasRodadasVidente).sort((a, b) => b - a);
+    let ids = Object.keys(todasRodadasVidente).filter(id => todasRodadasVidente[id].status !== 'encerrada').sort((a, b) => b - a);
     document.getElementById('totalRodadasCadastradas').innerText = ids.length;
     if (ids.length === 0) {
-        container.innerHTML = `<p style="color:#94a3b8; font-size:13px; text-align:center;">Nenhuma rodada cadastrada ainda.</p>`;
+        container.innerHTML = `<p style="color:#94a3b8; font-size:13px; text-align:center;">Nenhuma rodada ativa no momento. Veja o histórico abaixo.</p>`;
         return;
     }
     container.innerHTML = "";
@@ -1015,6 +1022,23 @@ function renderizarHistoricoRodadasVidente() {
             : `Nenhum vencedor`;
         div.innerHTML = `<div><strong>Rodada #${r.numeroRodada}${r.identificacao ? ' — ' + r.identificacao : ''}</strong></div><div style="font-size:12px; color:#475569;">${resultado} — ${r.totalCartoes} cartões</div>`;
         container.appendChild(div);
+    });
+}
+
+function zerarTudoDoBolao() {
+    let digitado = prompt("⚠️ ATENÇÃO: isso vai APAGAR PERMANENTEMENTE todos os jogos, rodadas, cartões, palpites, potes e históricos do Bolão Esportivo (Acertou na Mosca + Vidente da Rodada). O Bingo e os créditos dos clientes NÃO são afetados. Essa ação não pode ser desfeita.\n\nPara confirmar, digite APAGAR (em maiúsculas) abaixo:");
+    if (digitado !== "APAGAR") {
+        alert("Ação cancelada. Nada foi apagado.");
+        return;
+    }
+
+    Promise.all([
+        db.ref('bolao').set(null),
+        db.ref('bolaoVendas').set(null),
+        db.ref('bolaoRodada').set(null),
+        db.ref('bolaoRodadaVendas').set(null)
+    ]).then(() => {
+        alert("✅ Todos os dados do Bolão Esportivo foram apagados. Pode começar do zero!");
     });
 }
 </script>
